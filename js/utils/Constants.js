@@ -19,7 +19,7 @@ export const SPEED_LEVELS = [
     { level: 4, interval: 500, name: 'Very Fast' }, // 1 step every 0.5 seconds
     { level: 5, interval: 250, name: 'Insane' }     // 1 step every 0.25 seconds
 ];
-export const LEVEL_DURATION = 60000; // 1 minute per level in ms
+export const LEVEL_DURATION = 180000; // 3 minutes per level in ms
 
 // Spawn rates (probability per row)
 export const OBSTACLE_SPAWN_RATE = 0.18; // reduced for balanced difficulty progression

@@ -92,7 +92,7 @@ const THEMES = {
         '--leaderboard-silver': '#cccccc',
         '--leaderboard-bronze': '#888888',
         '--font-primary': "'Press Start 2P', monospace",
-        // Canvas colors - pure grayscale
+        // Canvas colors - pure grayscale (except tractor border for visibility)
         canvas: {
             GRID_LINE: 'rgba(255, 255, 255, 0.15)',
             GRID_CELL_EVEN: 'rgba(20, 20, 20, 0.9)',
@@ -103,7 +103,7 @@ const THEMES = {
             ROAD_EDGE: 'rgba(50, 50, 50, 0.7)',
             STARTING_LINE: 'rgba(255, 255, 255, 0.6)',
             LIFE_GLOW: '#ffffff',
-            TRACTOR_BORDER: '#ffffff',
+            TRACTOR_BORDER: '#00ff88',  // Green border to distinguish player from B&W elements
             FLASH_COLOR: 'rgba(255, 255, 255, 0.5)',
             SCORE_POPUP: '#ffffff',
             HIGHLIGHT: 'rgba(255, 255, 255, 0.3)'

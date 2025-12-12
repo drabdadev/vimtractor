@@ -414,6 +414,25 @@ body {
     padding-bottom: 15%;  /* Offset above center */
 }
 
+.drabda-message {
+    font-size: 10px;
+    color: var(--accent-secondary);
+    text-align: center;
+    margin-top: 20px;
+    padding: 8px 16px;
+    opacity: 0.9;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.drabda-message.hidden {
+    display: none;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
 .menu-footer {
     display: flex;
     justify-content: center;

@@ -47,6 +47,7 @@ export class HUD {
 
         // Theme toggle
         this.themeToggle = document.getElementById('theme-toggle');
+        this.drabdaMessage = document.getElementById('drabda-message');
         this.setupThemeToggle();
     }
 
@@ -67,12 +68,20 @@ export class HUD {
         if (this.themeToggle) {
             // Keep label fixed, only toggle active state for on/off effect
             this.themeToggle.title = isDrabda
-                ? 'Drab mode ON (:drabda)'
-                : 'Drab mode OFF (:drabda)';
+                ? 'Drabda mode ON (:drabda)'
+                : 'Drabda mode OFF (:drabda)';
             if (isDrabda) {
                 this.themeToggle.classList.add('active');
             } else {
                 this.themeToggle.classList.remove('active');
+            }
+        }
+        // Show/hide drabda congratulations message in menu
+        if (this.drabdaMessage) {
+            if (isDrabda) {
+                this.drabdaMessage.classList.remove('hidden');
+            } else {
+                this.drabdaMessage.classList.add('hidden');
             }
         }
     }

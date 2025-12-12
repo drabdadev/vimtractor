@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=28">
+    <link rel="stylesheet" href="css/style.css?v=31">
 </head>
 <body>
     <div id="game-container">
@@ -32,7 +32,7 @@
         </div>
         <!-- Sidebar for controls -->
         <div id="dev-sidebar">
-            <span id="theme-toggle" class="sidebar-btn" title="Drab mode OFF (:drabda)">DR</span>
+            <span id="theme-toggle" class="sidebar-btn" title="Drabda mode OFF (:drabda)">DR</span>
             <span id="debug-toggle" class="sidebar-btn" title="Debug Mode: OFF - Click to pause scroll">🐛</span>
             <span id="help-toggle" class="sidebar-btn" title="Help (:help)">?</span>
         </div>
@@ -53,6 +53,7 @@
                     <p id="slogan" class="slogan-typewriter"></p>
                     <p class="start-prompt">Press any key to start</p>
                 </div>
+                <p id="drabda-message" class="drabda-message hidden">(complimenti per aver scelto DRABDA mode)</p>
                 <div class="menu-footer">
                     <span><kbd>Tab</kbd> Leaderboard</span>
                     <span><kbd>?</kbd> Help</span>
@@ -118,7 +119,7 @@
                         <div class="help-row"><kbd>:</kbd> <span>Enter command mode</span></div>
                         <div class="help-row"><kbd>:q</kbd> <span>Quit game</span></div>
                         <div class="help-row"><kbd>:restart</kbd> <span>Restart game</span></div>
-                        <div class="help-row"><kbd>:drabda</kbd> <span>Toggle Drab mode</span></div>
+                        <div class="help-row"><kbd>:drabda</kbd> <span>Toggle Drabda mode</span></div>
                     </div>
                 </div>
                 <p class="help-footer">Press <kbd>:q</kbd> or <kbd>Esc</kbd> to close</p>
@@ -131,6 +132,6 @@
         </div>
     </div>
 
-    <script type="module" src="js/main.js?v=28"></script>
+    <script type="module" src="js/main.js?v=31"></script>
 </body>
 </html>

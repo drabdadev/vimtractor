@@ -1,17 +1,17 @@
 import {
     GAME_STATES, SPEED_LEVELS, LEVEL_DURATION, GRID_ROWS, CELL_TYPES, CELL_SIZE, PLAYER, CANVAS_HEIGHT
-} from '../utils/Constants.js';
+} from '../utils/Constants.js?v=31';
 import { Grid } from './Grid.js';
 import { Tractor } from './Tractor.js';
 import { Spawner } from './Spawner.js';
 import { Collision } from './Collision.js';
-import { VimParser, COMMAND_TYPES } from '../input/VimParser.js?v=28';
+import { VimParser, COMMAND_TYPES } from '../input/VimParser.js?v=31';
 import { InputHandler } from '../input/InputHandler.js';
-import { Renderer } from '../render/Renderer.js?v=28';
-import { HUD } from '../render/HUD.js';
+import { Renderer } from '../render/Renderer.js?v=31';
+import { HUD } from '../render/HUD.js?v=31';
 import { Storage } from '../utils/Storage.js';
 import { soundEngine } from '../audio/SoundEngine.js';
-import { themeManager } from '../utils/ThemeManager.js';
+import { themeManager } from '../utils/ThemeManager.js?v=31';
 
 export class Game {
     constructor() {
@@ -472,8 +472,9 @@ export class Game {
     }
 
     // Clear entire visible screen and return total points, lives, and gas cans collected
+    // Only 1/5 (20%) of points are credited to balance the powerful dG command
     clearScreenAndCollect() {
-        let points = 0;
+        let totalPoints = 0;
         let lives = 0;
         let gasCans = 0;
         const startRow = this.getVisibleTopRow();
@@ -483,7 +484,7 @@ export class Game {
                 const cell = this.grid.getCell(col, row);
                 if (cell) {
                     if (cell.type === CELL_TYPES.ITEM && cell.points) {
-                        points += cell.points;
+                        totalPoints += cell.points;
                     } else if (cell.type === CELL_TYPES.LIFE) {
                         lives++;
                     } else if (cell.type === CELL_TYPES.POWERUP) {
@@ -494,6 +495,8 @@ export class Game {
                 }
             }
         }
+        // Only credit 1/5 of points (20%) to balance the powerful screen clear
+        const points = Math.floor(totalPoints / 5);
         return { points, lives, gasCans };
     }
 
