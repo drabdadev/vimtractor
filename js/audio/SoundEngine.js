@@ -18,6 +18,10 @@ export class SoundEngine {
         // Active sound nodes (for cleanup)
         this.activeSounds = new Set();
 
+        // Mute state
+        this.isMuted = false;
+        this.savedVolume = this.masterVolume;
+
         // Engine loop state
         this.engineLoop = null;
         this.engineGain = null;
@@ -88,6 +92,38 @@ export class SoundEngine {
         if (this.menuJingleGain) {
             this.menuJingleGain.gain.value = this.musicVolume * 0.25;
         }
+    }
+
+    /**
+     * Toggle mute on/off
+     * @returns {boolean} New mute state (true = muted)
+     */
+    toggleMute() {
+        if (this.isMuted) {
+            // Unmute - restore saved volume
+            this.masterVolume = this.savedVolume;
+            if (this.masterGain) {
+                this.masterGain.gain.value = this.masterVolume;
+            }
+            this.isMuted = false;
+        } else {
+            // Mute - save current volume and set to 0
+            this.savedVolume = this.masterVolume;
+            this.masterVolume = 0;
+            if (this.masterGain) {
+                this.masterGain.gain.value = 0;
+            }
+            this.isMuted = true;
+        }
+        return this.isMuted;
+    }
+
+    /**
+     * Get mute state
+     * @returns {boolean} True if muted
+     */
+    getMuted() {
+        return this.isMuted;
     }
 
     /**
