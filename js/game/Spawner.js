@@ -1,8 +1,8 @@
 import {
     GRID_COLS, GRID_ROWS, CELL_TYPES,
-    OBSTACLE_SPAWN_RATE, ITEM_SPAWN_RATE, POWERUP_SPAWN_RATE,
     OBSTACLES, ITEMS, POWERUPS, LIFE_ITEM, PLAYER
 } from '../utils/Constants.js';
+import { GameConfig } from '../config/GameConfig.js';
 
 export class Spawner {
     constructor(grid) {
@@ -12,12 +12,17 @@ export class Spawner {
         this.powerupTypes = Object.values(POWERUPS);
     }
 
+    // Get points for an item by name from GameConfig
+    getItemPoints(itemName) {
+        return GameConfig.points[itemName] || 1;
+    }
+
     // Spawn content for a new row
     spawnRow(row = 0, difficulty = 1) {
-        // Adjust spawn rates based on difficulty (cap at 45% for playability)
-        const obstacleRate = Math.min(OBSTACLE_SPAWN_RATE * difficulty, 0.45);
-        const itemRate = ITEM_SPAWN_RATE;
-        const powerupRate = POWERUP_SPAWN_RATE;
+        // Adjust spawn rates based on difficulty (cap at maxObstacleRate for playability)
+        const obstacleRate = Math.min(GameConfig.spawn.obstacle * difficulty, GameConfig.spawn.maxObstacleRate);
+        const itemRate = GameConfig.spawn.item;
+        const powerupRate = GameConfig.spawn.powerup;
 
         // Track spawned cells to avoid overlap
         const spawned = new Set();
@@ -37,9 +42,10 @@ export class Spawner {
             }
         }
 
-        // 40% chance to spawn a consecutive vegetable group (3-8 cells)
-        if (Math.random() < 0.4) {
-            const groupLength = Math.floor(Math.random() * 6) + 3; // 3-8
+        // Chance to spawn a consecutive vegetable group
+        const vgConfig = GameConfig.spawn.vegetableGroup;
+        if (Math.random() < vgConfig.chance) {
+            const groupLength = Math.floor(Math.random() * (vgConfig.maxLength - vgConfig.minLength + 1)) + vgConfig.minLength;
             const vegetable = this.randomVegetable();
 
             // Find a starting position that has enough consecutive free cells
@@ -78,7 +84,7 @@ export class Spawner {
                         type: CELL_TYPES.ITEM,
                         subtype: vegetable.name,
                         emoji: vegetable.emoji,
-                        points: vegetable.points
+                        points: this.getItemPoints(vegetable.name)
                     });
                     spawned.add(col);
                 }
@@ -95,7 +101,7 @@ export class Spawner {
                     type: CELL_TYPES.ITEM,
                     subtype: item.name,
                     emoji: item.emoji,
-                    points: item.points
+                    points: this.getItemPoints(item.name)
                 });
                 spawned.add(col);
             }
@@ -121,7 +127,7 @@ export class Spawner {
         for (let col = 0; col < GRID_COLS; col++) {
             if (spawned.has(col)) continue;
 
-            if (Math.random() < LIFE_ITEM.spawnRate) {
+            if (Math.random() < GameConfig.spawn.life) {
                 this.grid.setCell(col, row, {
                     type: CELL_TYPES.LIFE,
                     subtype: LIFE_ITEM.name,
@@ -167,21 +173,22 @@ export class Spawner {
     }
 
     randomItem() {
-        // Weighted random selection: vegetables most common, then coins, gems rare
+        // Weighted random selection based on GameConfig distribution
+        const dist = GameConfig.spawn.itemDistribution;
         const rand = Math.random();
-        if (rand < 0.6) {
-            // 60% vegetables
+        if (rand < dist.vegetables) {
+            // Vegetables
             const vegetables = [
                 ITEMS.TOMATO, ITEMS.LETTUCE, ITEMS.ZUCCHINI, ITEMS.GRAPES,
                 ITEMS.POTATO, ITEMS.CARROT, ITEMS.ASPARAGUS,
                 ITEMS.PEPPER, ITEMS.WHEAT, ITEMS.CORN
             ];
             return vegetables[Math.floor(Math.random() * vegetables.length)];
-        } else if (rand < 0.9) {
-            // 30% coins
+        } else if (rand < dist.vegetables + dist.coins) {
+            // Coins
             return ITEMS.COIN;
         }
-        // 10% gems
+        // Gems (rare)
         return ITEMS.GEM;
     }
 
@@ -192,27 +199,28 @@ export class Spawner {
     // Spawn initial rows for game start (world coordinates)
     // Camera scrolls UP (decreasing cameraY), so player moves UP (decreasing row) to keep up
     // Returns the LOWEST spawned row number (for tracking lastSpawnedRow)
-    spawnInitialRows(safeRows = 3) {
+    spawnInitialRows() {
         const tractorRow = PLAYER.START_ROW;
+        const safeRows = GameConfig.difficulty.safeZoneRows;
 
         // Safe zone: rows from tractorRow down to tractorRow - safeRows (no obstacles)
         const safeStartRow = tractorRow - safeRows;
         for (let row = safeStartRow; row <= tractorRow; row++) {
             for (let col = 0; col < GRID_COLS; col++) {
-                if (Math.random() < ITEM_SPAWN_RATE * 0.5) {
+                if (Math.random() < GameConfig.spawn.item * 0.5) {
                     const item = this.randomItem();
                     this.grid.setCell(col, row, {
                         type: CELL_TYPES.ITEM,
                         subtype: item.name,
                         emoji: item.emoji,
-                        points: item.points
+                        points: this.getItemPoints(item.name)
                     });
                 }
             }
         }
 
         // Spawn normal content ABOVE safe zone (lower row numbers - where player goes)
-        const topRow = safeStartRow - GRID_ROWS - 5;  // Extra buffer above
+        const topRow = safeStartRow - GRID_ROWS - GameConfig.difficulty.initialBufferRows;
         for (let row = safeStartRow - 1; row >= topRow; row--) {
             this.spawnRow(row, 1);
         }

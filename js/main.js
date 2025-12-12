@@ -1,4 +1,4 @@
-import { Game } from './game/Game.js?v=31';
+import { Game } from './game/Game.js?v=32';
 
 // Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', () => {

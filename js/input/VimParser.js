@@ -1,4 +1,4 @@
-import { VIM } from '../utils/Constants.js';
+import { GameConfig } from '../config/GameConfig.js';
 
 // Vim command types
 export const COMMAND_TYPES = {
@@ -38,7 +38,7 @@ export class VimParser {
         this.countTimeout = setTimeout(() => {
             this.resetCount();
             // pendingKey is NOT reset - Vim behavior
-        }, VIM.COUNT_TIMEOUT);
+        }, GameConfig.ui.vimCountTimeout);
     }
 
     getEffectiveCount() {
@@ -112,7 +112,7 @@ export class VimParser {
                 this.emitMove('line_start');
                 return true;
             }
-            this.count = Math.min(this.count * 10 + parseInt(key), VIM.MAX_COUNT);
+            this.count = Math.min(this.count * 10 + parseInt(key), GameConfig.ui.vimMaxCount);
             this.startCountTimeout();
             this.emitCommand({ type: 'count', count: this.count });
             return true;

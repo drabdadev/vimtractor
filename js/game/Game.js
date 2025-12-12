@@ -1,17 +1,18 @@
 import {
-    GAME_STATES, SPEED_LEVELS, LEVEL_DURATION, GRID_ROWS, CELL_TYPES, CELL_SIZE, PLAYER, CANVAS_HEIGHT
-} from '../utils/Constants.js?v=31';
+    GAME_STATES, GRID_ROWS, CELL_TYPES, CELL_SIZE, PLAYER, CANVAS_HEIGHT
+} from '../utils/Constants.js?v=32';
+import { GameConfig } from '../config/GameConfig.js?v=32';
 import { Grid } from './Grid.js';
-import { Tractor } from './Tractor.js';
-import { Spawner } from './Spawner.js';
+import { Tractor } from './Tractor.js?v=32';
+import { Spawner } from './Spawner.js?v=32';
 import { Collision } from './Collision.js';
-import { VimParser, COMMAND_TYPES } from '../input/VimParser.js?v=31';
+import { VimParser, COMMAND_TYPES } from '../input/VimParser.js?v=32';
 import { InputHandler } from '../input/InputHandler.js';
-import { Renderer } from '../render/Renderer.js?v=31';
-import { HUD } from '../render/HUD.js?v=31';
+import { Renderer } from '../render/Renderer.js?v=32';
+import { HUD } from '../render/HUD.js?v=32';
 import { Storage } from '../utils/Storage.js';
 import { soundEngine } from '../audio/SoundEngine.js';
-import { themeManager } from '../utils/ThemeManager.js?v=31';
+import { themeManager } from '../utils/ThemeManager.js?v=32';
 
 export class Game {
     constructor() {
@@ -40,7 +41,7 @@ export class Game {
 
         // Camera system (world coordinates)
         this.currentLevel = 0;
-        this.scrollInterval = SPEED_LEVELS[0].interval;
+        this.scrollInterval = GameConfig.speed.levels[0].interval;
         this.cameraY = 0;  // World Y position of top of screen (pixels)
         this.startingRow = PLAYER.START_ROW;  // Row where tractor starts (for starting line)
         this.lastSpawnedRow = 0;  // Track last spawned row for dynamic spawning
@@ -367,15 +368,15 @@ export class Game {
 
         switch (action) {
             case 'delete_line':
-                // dd - clear current row and collect points (requires 2 gas cans)
-                if (this.tractor.getGasCans() >= 2) {
+                // dd - clear current row and collect points
+                if (this.tractor.getGasCans() >= GameConfig.powerupCosts.dd) {
                     soundEngine.playPowerup();
                     // Add smoke effect before clearing
                     if (this.renderer.addRowSmokeEffect) {
                         this.renderer.addRowSmokeEffect(this.tractor.row);
                     }
                     const results = this.clearRowAndCollect(this.tractor.row);
-                    this.tractor.useGasCans(2);
+                    this.tractor.useGasCans(GameConfig.powerupCosts.dd);
                     this.score += results.points;
                     // Add collected lives
                     for (let i = 0; i < results.lives; i++) {
@@ -395,15 +396,15 @@ export class Game {
                 }
                 break;
             case 'delete_all':
-                // dG - clear entire screen and collect all points (requires 10 gas cans)
-                if (this.tractor.getGasCans() >= 10) {
+                // dG - clear entire screen and collect all points
+                if (this.tractor.getGasCans() >= GameConfig.powerupCosts.dG) {
                     soundEngine.playPowerup();
                     // Add smoke effect for entire screen before clearing
                     if (this.renderer.addScreenSmokeEffect) {
                         this.renderer.addScreenSmokeEffect(this.getVisibleTopRow(), this.getVisibleBottomRow());
                     }
                     const results = this.clearScreenAndCollect();
-                    this.tractor.useGasCans(10);
+                    this.tractor.useGasCans(GameConfig.powerupCosts.dG);
                     this.score += results.points;
                     // Add collected lives
                     for (let i = 0; i < results.lives; i++) {
@@ -495,8 +496,8 @@ export class Game {
                 }
             }
         }
-        // Only credit 1/5 of points (20%) to balance the powerful screen clear
-        const points = Math.floor(totalPoints / 5);
+        // Apply dG multiplier to balance the powerful screen clear
+        const points = Math.floor(totalPoints * GameConfig.points.dGMultiplier);
         return { points, lives, gasCans };
     }
 
@@ -794,16 +795,16 @@ export class Game {
         // Record position for undo
         this.tractor.recordPosition();
 
-        // Update speed level based on time (each level lasts LEVEL_DURATION ms)
+        // Update speed level based on time (each level lasts levelDuration ms)
         const newLevel = Math.min(
-            Math.floor(this.gameTime / LEVEL_DURATION),
-            SPEED_LEVELS.length - 1
+            Math.floor(this.gameTime / GameConfig.speed.levelDuration),
+            GameConfig.speed.levels.length - 1
         );
 
         if (newLevel !== this.currentLevel) {
             this.currentLevel = newLevel;
-            this.scrollInterval = SPEED_LEVELS[newLevel].interval;
-            this.hud.updateSpeedLevel(newLevel + 1, SPEED_LEVELS[newLevel].name);
+            this.scrollInterval = GameConfig.speed.levels[newLevel].interval;
+            this.hud.updateSpeedLevel(newLevel + 1, GameConfig.speed.levels[newLevel].name);
             soundEngine.playLevelUp();
         }
 
@@ -815,8 +816,8 @@ export class Game {
             this.cameraY -= deltaTime * scrollSpeed;
 
             // Spawn new rows as camera reveals them (spawn ahead at TOP - lower row numbers)
-            // Difficulty synced with levels (60s each) for smoother progression
-            const difficulty = 1 + this.gameTime / 60000;
+            // Difficulty scales based on GameConfig interval
+            const difficulty = 1 + this.gameTime / GameConfig.difficulty.scalingInterval;
             const targetRow = this.getVisibleTopRow() - GRID_ROWS;
             while (this.lastSpawnedRow > targetRow) {
                 this.lastSpawnedRow--;
@@ -850,8 +851,8 @@ export class Game {
             // Fell off screen - play crash sound
             soundEngine.playCrash();
 
-            // Respawn tractor 5 rows up from current position
-            const safeRow = this.tractor.row - 5;
+            // Respawn tractor above current position
+            const safeRow = this.tractor.row - GameConfig.player.respawnRowOffset;
             this.tractor.setPosition(this.tractor.col, safeRow);
         }
 
@@ -860,7 +861,7 @@ export class Game {
 
         // Award survival points every second
         if (Math.floor(this.gameTime / 1000) > Math.floor((this.gameTime - deltaTime) / 1000)) {
-            this.score += 1;
+            this.score += GameConfig.points.survivalPerSecond;
             this.hud.updateScore(this.score);
         }
     }
@@ -932,7 +933,7 @@ export class Game {
 
         // Reset speed level system
         this.currentLevel = 0;
-        this.scrollInterval = SPEED_LEVELS[0].interval;
+        this.scrollInterval = GameConfig.speed.levels[0].interval;
 
         // Reset camera system
         this.cameraY = 0;
@@ -1004,12 +1005,12 @@ export class Game {
             this.hud.updateHighScore(this.highScore);
         }
 
-        // After 1.5 seconds, show game over screen and play sad music
+        // After delay, show game over screen and play sad music
         setTimeout(() => {
             this.tractor.restoreEmoji();
             soundEngine.playDeathMusic();
             this.hud.showGameOver(this.score, this.highScore);
-        }, 1500);
+        }, GameConfig.ui.gameOverDelay);
 
         // Reset parser for restart
         this.vimParser.reset();

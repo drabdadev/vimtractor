@@ -1,3 +1,8 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// COSTANTI TECNICHE - Non modificare questi valori!
+// Per i parametri di gameplay, vedi js/config/GameConfig.js
+// ═══════════════════════════════════════════════════════════════════════════
+
 // Grid configuration (4:3 aspect ratio)
 export const GRID_COLS = 24;
 export const GRID_ROWS = 18;
@@ -10,21 +15,6 @@ export const CANVAS_HEIGHT = GRID_ROWS * CELL_SIZE; // 864px
 // Game timing
 export const TARGET_FPS = 60;
 export const FRAME_TIME = 1000 / TARGET_FPS;
-
-// Speed levels - each level lasts 1 minute, interval is time between scroll steps
-export const SPEED_LEVELS = [
-    { level: 1, interval: 3000, name: 'Slow' },      // 1 step every 3 seconds
-    { level: 2, interval: 2000, name: 'Normal' },   // 1 step every 2 seconds
-    { level: 3, interval: 1000, name: 'Fast' },     // 1 step every 1 second
-    { level: 4, interval: 500, name: 'Very Fast' }, // 1 step every 0.5 seconds
-    { level: 5, interval: 250, name: 'Insane' }     // 1 step every 0.25 seconds
-];
-export const LEVEL_DURATION = 180000; // 3 minutes per level in ms
-
-// Spawn rates (probability per row)
-export const OBSTACLE_SPAWN_RATE = 0.18; // reduced for balanced difficulty progression
-export const ITEM_SPAWN_RATE = 0.15;
-export const POWERUP_SPAWN_RATE = 0.05;
 
 // Cell types
 export const CELL_TYPES = {
@@ -42,19 +32,20 @@ export const OBSTACLES = {
 };
 
 // Item subtypes - vegetables and treasures to collect
+// NOTA: I punti sono definiti in GameConfig.js
 export const ITEMS = {
-    COIN: { emoji: '💰', points: 1, name: 'coin' },
-    GEM: { emoji: '💎', points: 5, name: 'gem' },
-    TOMATO: { emoji: '🍅', points: 2, name: 'tomato' },
-    LETTUCE: { emoji: '🥬', points: 2, name: 'lettuce' },
-    ZUCCHINI: { emoji: '🥒', points: 2, name: 'zucchini' },
-    GRAPES: { emoji: '🍇', points: 3, name: 'grapes' },
-    POTATO: { emoji: '🥔', points: 2, name: 'potato' },
-    CARROT: { emoji: '🥕', points: 2, name: 'carrot' },
-    ASPARAGUS: { emoji: '🥦', points: 3, name: 'asparagus' },
-    PEPPER: { emoji: '🫑', points: 2, name: 'pepper' },
-    WHEAT: { emoji: '🌾', points: 2, name: 'wheat' },
-    CORN: { emoji: '🌽', points: 2, name: 'corn' }
+    COIN: { emoji: '💰', name: 'coin' },
+    GEM: { emoji: '💎', name: 'gem' },
+    TOMATO: { emoji: '🍅', name: 'tomato' },
+    LETTUCE: { emoji: '🥬', name: 'lettuce' },
+    ZUCCHINI: { emoji: '🥒', name: 'zucchini' },
+    GRAPES: { emoji: '🍇', name: 'grapes' },
+    POTATO: { emoji: '🥔', name: 'potato' },
+    CARROT: { emoji: '🥕', name: 'carrot' },
+    ASPARAGUS: { emoji: '🥦', name: 'asparagus' },
+    PEPPER: { emoji: '🫑', name: 'pepper' },
+    WHEAT: { emoji: '🌾', name: 'wheat' },
+    CORN: { emoji: '🌽', name: 'corn' }
 };
 
 // Powerup subtypes - gas cans give special abilities
@@ -65,22 +56,11 @@ export const POWERUPS = {
 };
 
 // Life item - extra tractors give lives (with green glow)
+// NOTA: spawnRate è definito in GameConfig.js
 export const LIFE_ITEM = {
     emoji: '🚜',
-    name: 'life',
-    spawnRate: 0.02
+    name: 'life'
 };
-
-// Animation settings
-export const ANIMATION = {
-    MOVE_DURATION: 100,     // ms for tractor to move between cells
-    SHAKE_DURATION: 300,    // ms for screen shake
-    SHAKE_INTENSITY: 8,     // pixels
-    EXPLOSION_DURATION: 500 // ms for explosion animation
-};
-
-// Starting lives
-export const STARTING_LIVES = 3;
 
 // Player settings
 export const PLAYER = {
@@ -89,14 +69,7 @@ export const PLAYER = {
     START_ROW: Math.floor(GRID_ROWS / 2) + 2  // Slightly below middle
 };
 
-
-// Vim parser settings
-export const VIM = {
-    COUNT_TIMEOUT: 1500, // ms before count resets
-    MAX_COUNT: 99
-};
-
-// Colors
+// Colors (usati da ThemeManager)
 export const COLORS = {
     GRID_LINE: 'rgba(15, 52, 96, 0.3)',
     GRID_CELL_EVEN: 'rgba(22, 33, 62, 0.8)',

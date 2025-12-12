@@ -1,7 +1,8 @@
 import {
     CANVAS_WIDTH, CANVAS_HEIGHT, CELL_SIZE,
-    GRID_COLS, GRID_ROWS, ANIMATION, CELL_TYPES, PLAYER
+    GRID_COLS, GRID_ROWS, CELL_TYPES, PLAYER
 } from '../utils/Constants.js';
+import { GameConfig } from '../config/GameConfig.js';
 import { themeManager } from '../utils/ThemeManager.js';
 
 export class Renderer {
@@ -188,13 +189,13 @@ export class Renderer {
 
         this.shakeTime += deltaTime;
 
-        if (this.shakeTime >= ANIMATION.SHAKE_DURATION) {
+        if (this.shakeTime >= GameConfig.animation.shakeDuration) {
             this.isShaking = false;
             this.shakeOffset = { x: 0, y: 0 };
         } else {
             // Decreasing intensity shake
-            const progress = this.shakeTime / ANIMATION.SHAKE_DURATION;
-            const intensity = ANIMATION.SHAKE_INTENSITY * (1 - progress);
+            const progress = this.shakeTime / GameConfig.animation.shakeDuration;
+            const intensity = GameConfig.animation.shakeIntensity * (1 - progress);
             this.shakeOffset = {
                 x: (Math.random() - 0.5) * 2 * intensity,
                 y: (Math.random() - 0.5) * 2 * intensity
@@ -216,14 +217,14 @@ export class Renderer {
     updateExplosions(deltaTime) {
         this.explosions = this.explosions.filter(exp => {
             exp.time += deltaTime;
-            return exp.time < ANIMATION.EXPLOSION_DURATION;
+            return exp.time < GameConfig.animation.explosionDuration;
         });
     }
 
     // Draw explosions with camera offset
     drawExplosions(cameraY = 0) {
         this.explosions.forEach(exp => {
-            const progress = exp.time / ANIMATION.EXPLOSION_DURATION;
+            const progress = exp.time / GameConfig.animation.explosionDuration;
             const scale = 1 + progress * 0.5; // Grow slightly
             const alpha = 1 - progress; // Fade out
 
@@ -273,7 +274,7 @@ export class Renderer {
 
     // Update collection effects
     updateCollectEffects(deltaTime) {
-        const duration = 0.4; // 400ms effect duration
+        const duration = GameConfig.animation.collectEffectDuration / 1000; // Convert ms to seconds
         this.collectEffects = this.collectEffects.filter(eff => {
             eff.time += deltaTime;
             // Update position based on velocity
@@ -287,7 +288,7 @@ export class Renderer {
 
     // Draw collection effects
     drawCollectEffects(cameraY = 0) {
-        const duration = 0.4;
+        const duration = GameConfig.animation.collectEffectDuration / 1000;
         this.collectEffects.forEach(eff => {
             const progress = eff.time / duration;
             const alpha = 1 - progress; // Fade out
@@ -365,7 +366,7 @@ export class Renderer {
 
     // Update smoke effects
     updateSmokeEffects(deltaTime) {
-        const duration = 600; // 600ms effect duration
+        const duration = GameConfig.animation.smokeEffectDuration;
         this.smokeEffects = this.smokeEffects.filter(smoke => {
             smoke.time += deltaTime;
 
@@ -385,7 +386,7 @@ export class Renderer {
 
     // Draw smoke effects
     drawSmokeEffects(cameraY = 0) {
-        const duration = 600; // ms
+        const duration = GameConfig.animation.smokeEffectDuration;
         this.smokeEffects.forEach(smoke => {
             // Skip if still in delay period
             if (smoke.time < 0) return;

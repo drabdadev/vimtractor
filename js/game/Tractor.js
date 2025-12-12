@@ -1,4 +1,5 @@
-import { PLAYER, GRID_COLS, CELL_SIZE, ANIMATION, STARTING_LIVES } from '../utils/Constants.js';
+import { PLAYER, GRID_COLS, CELL_SIZE } from '../utils/Constants.js';
+import { GameConfig } from '../config/GameConfig.js';
 
 export class Tractor {
     constructor() {
@@ -18,10 +19,10 @@ export class Tractor {
         this.startY = this.visualY;
 
         // Lives system
-        this.lives = STARTING_LIVES;
+        this.lives = GameConfig.player.startingLives;
 
         // Power-ups (gas cans only)
-        this.gasCans = 0;
+        this.gasCans = GameConfig.player.startingGasCans;
 
         // Death state
         this.isDead = false;
@@ -56,7 +57,7 @@ export class Tractor {
             return;
         }
 
-        this.animationProgress += deltaTime / ANIMATION.MOVE_DURATION;
+        this.animationProgress += deltaTime / GameConfig.animation.moveDuration;
 
         if (this.animationProgress >= 1) {
             this.animationProgress = 1;
@@ -198,8 +199,8 @@ export class Tractor {
         this.targetX = this.visualX;
         this.targetY = this.visualY;
         this.isAnimating = false;
-        this.lives = STARTING_LIVES;
-        this.gasCans = 0;
+        this.lives = GameConfig.player.startingLives;
+        this.gasCans = GameConfig.player.startingGasCans;
         this.positionHistory = [];
         this.isDead = false;
         this.emoji = this.normalEmoji;
