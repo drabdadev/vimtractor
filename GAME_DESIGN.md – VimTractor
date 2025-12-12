@@ -1,0 +1,324 @@
+GAME_DESIGN.md – VimTractor
+1. Overview
+
+VimTractor è un gioco arcade 2D a scorrimento verticale basato su griglia, giocabile da browser.
+Il giocatore controlla un trattore utilizzando esclusivamente comandi Vim (movimenti, count, scorciatoie, azioni, modalità :).
+Obiettivo: evitare ostacoli, raccogliere oggetti e imparare i comandi essenziali di Vim attraverso un gameplay progressivo.
+
+2. Obiettivi
+2.1 Obiettivi generali
+
+Sopravvivere il più a lungo possibile.
+
+Evitare ostacoli.
+
+Raccogliere oggetti e ottenere punti.
+
+Affrontare difficoltà crescenti.
+
+2.2 Obiettivi didattici
+
+Allenare i giocatori ai comandi Vim:
+
+Movimenti base: h, j, k, l
+
+Movimenti di riga: 0, $
+
+Movimenti a parola: w, b, e
+
+Movimenti su file: gg, G
+
+Movimenti di pagina: Ctrl+f, Ctrl+b
+
+Count numerici: 5h, 10j, ecc.
+
+Azioni: x, dd, u, Ctrl+r
+
+Command-line mode: :q, :wq, :restart
+
+3. Piattaforma e Requisiti Tecnici
+
+Browser desktop moderni.
+
+HTML5 Canvas 2D, JavaScript, CSS minimale.
+
+Target: 60 FPS.
+
+Persistenza tramite localStorage (high score, progressi, telemetria).
+
+4. Griglia di Gioco
+
+Dimensione standard: 12 colonne × 20 righe visibili.
+
+Coordinate: (0,0) in alto a sinistra.
+
+Ogni cella può contenere:
+
+Vuoto
+
+Ostacolo
+
+Oggetto
+
+Power-up
+
+Il trattore occupa una singola cella.
+
+5. Scorrimento Verticale
+
+Il mondo scorre verso il basso a velocità costante, poi crescente.
+
+Nuove righe vengono generate in alto; le ultime vengono rimosse.
+
+Il ritmo dello scorrimento determina la difficoltà.
+
+6. Trattore (Player)
+6.1 Stato
+
+Posizione: cella (x,y)
+
+Vita: 1 (MVP) o 3 (modalità avanzata)
+
+Power-up attivi:
+
+toolbox → x
+
+super-toolbox → dd
+
+undo-charge → u
+
+6.2 Posizione Iniziale
+
+Colonna centrale.
+
+3 righe sopra il bordo inferiore.
+
+7. Comandi Vim
+7.1 Movimenti base
+Comando	Azione
+h	sinistra
+l	destra
+k	su
+j	giù
+7.2 Movimenti di riga
+Comando	Azione
+0	Vai alla colonna 0
+$	Vai all'ultima colonna
+7.3 Movimenti a parola
+
+Interpretazione di “word”: sequenza di celle vuote fino a ostacolo o bordo.
+
+Comando	Azione
+w	Salta alla cella prima del prossimo ostacolo a destra
+b	Salta dopo l'ostacolo precedente a sinistra
+e	Salta sulla cella dell'ostacolo/oggetto successivo
+7.4 Movimenti su file
+Comando	Azione
+gg	Vai alla riga più bassa sicura della colonna corrente
+G	Vai a una riga alta predefinita (es. riga 3)
+7.5 Movimenti di pagina
+Comando	Azione
+Ctrl+f	Salta verso l’alto / scroll accelerato
+Ctrl+b	Movimento verso il basso / freno
+7.6 Count numerici
+
+Supporto completo ai count prima dei comandi (3h, 10j, 2w, …).
+
+Overlay “Count: N”.
+
+Timeout automatico del count.
+
+7.7 Azioni Vim
+Comando	Requisito	Effetto
+x	toolbox	Cancella ostacolo immediatamente davanti
+dd	super-toolbox	Cancella una porzione della riga del trattore
+u	undo-charge	Torna alla posizione di 0.5–1s fa
+Ctrl+r	undo precedente	Ripristina lo stato pre-undo
+7.8 Command-line Mode (:)
+
+Attivata con :
+
+Input fermo finché non viene premuto Enter
+
+Comandi MVP:
+
+:q
+
+:wq
+
+:restart
+
+8. Oggetti e Power-up
+8.1 Oggetti
+Oggetto	Effetto
+Moneta	+1 punto
+Cassetta attrezzi	Abilita x
+Cassetta pro	Abilita dd
+Icona undo	Abilita u
+9. Ostacoli
+
+Rocce
+
+Balle di fieno
+
+Pozze di fango (rallentano)
+
+Tronchi (ostacoli larghi su più celle)
+
+Collisioni:
+
+MVP: game over immediato.
+
+Avanzato: perdita di 1 vita.
+
+10. Modalità di Gioco
+10.1 Training Mode
+
+Livelli progressivi che introducono nuovi comandi:
+
+Movimenti base
+
+0, $, count
+
+w, b, e
+
+gg, G, Ctrl+f, Ctrl+b
+
+x, dd, u, Ctrl+r, :
+
+10.2 Endless Mode
+
+Tutti i comandi attivi.
+
+Difficoltà crescente.
+
+Punteggio illimitato.
+
+11. UI / HUD
+
+Mostra:
+
+Punteggio
+
+High score
+
+Modalità attuale
+
+Count attivo
+
+Power-up disponibili
+
+Stato NORMAL/COMMAND
+
+Messaggi tutorial
+
+12. Audio e Grafica
+Grafica
+
+Pixel art semplice.
+
+Trattore stilizzato.
+
+Ostacoli ben leggibili.
+
+Effetti minimi.
+
+Audio
+
+Effetti:
+
+Raccolta
+
+Collisione
+
+Power-up
+
+Apertura command-mode
+
+Musica leggera loop.
+
+13. Telemetria (Locale)
+
+Numero di partite
+
+Durata media
+
+Comandi più usati
+
+Errori di digitazione (movimenti invalidi)
+
+14. Architettura Tecnica
+14.1 Loop di gioco
+
+Update stato mondo (scroll)
+
+Input Vim → movimento/azione
+
+Collision detection
+
+Rendering
+
+14.2 Gestione input
+
+Parser Vim:
+
+Count
+
+Sequenze (gg, dd)
+
+Modalità comando
+
+Comandi con Ctrl
+
+14.3 Engine griglia
+
+Rappresentazione 2D
+
+Spawn ostacoli/oggetti
+
+Scorrimento
+
+Query delle celle
+
+15. Roadmap
+MVP
+
+Griglia + scorrimento
+
+Movimenti base
+
+Ostacoli base
+
+Oggetti + punteggio
+
+UI essenziale
+
+Modalità Endless semplice
+
+Vim Extended
+
+Count
+
+Movimenti avanzati
+
+Azioni Vim
+
+Command-line
+
+Modalità Training
+
+Polishing
+
+Effetti grafici
+
+Tutorial interattivi
+
+Telemetria completa
+
+Se vuoi, posso generare anche:
+
+l’albero delle cartelle del progetto,
+
+la prima implementazione del parser di comandi Vim,
+
+oppure uno storyboard UI del gameplay.

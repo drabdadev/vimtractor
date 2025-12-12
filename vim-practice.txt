@@ -1,0 +1,983 @@
+================================================================================
+                    NEOVIM TUTORIAL INTERATTIVO
+                    Impara Vim facendo pratica
+================================================================================
+
+COME USARE QUESTO TUTORIAL
+--------------------------
+1. Apri questo file con: nvim vim-practice.txt
+2. Segui le istruzioni passo-passo in ogni lezione
+3. Pratica direttamente su questo file (puoi sempre annullare con 'u')
+4. Quando vedi [ESERCIZIO], fermati e prova tu stesso
+5. Le soluzioni sono indicate tra parentesi quadre [soluzione]
+
+IMPORTANTE: Sei in NORMAL MODE quando apri Vim. Premi ESC in qualsiasi
+momento per tornare in Normal Mode se ti perdi.
+
+Pronto? Iniziamo!
+
+
+================================================================================
+LEZIONE 1: I Tuoi Primi Movimenti (5 minuti)
+================================================================================
+
+In Vim non usi le frecce della tastiera. Usi queste lettere:
+
+    h = sinistra    (pensa: h è la lettera più a sinistra)
+    j = giù         (pensa: la j ha una "coda" che va in giù)
+    k = su          (pensa: la k ha una "freccia" che va in su)
+    l = destra      (pensa: l è la lettera più a destra)
+
+PERCHÉ? Le tue dita restano sulla home row della tastiera, molto più veloce!
+
+............................................................................
+[ESERCIZIO 1.1] Naviga tra queste righe usando SOLO h, j, k, l
+............................................................................
+
+Riga A - parti da qui
+Riga B - scendi qui con j
+Riga C - continua a scendere
+Riga D - ora risali con k
+Riga E - muoviti a destra con l e a sinistra con h
+
+............................................................................
+[ESERCIZIO 1.2] Attraversa questo labirinto da S (start) a E (end)
+............................................................................
+
+S . . . . . . .
+. . # # # # . .
+. . # . . # . .
+. . # . . # . .
+. . . . . . . E
+
+Suggerimento: Usa j per scendere, l per andare a destra, evita i #
+
+
+================================================================================
+LEZIONE 2: Movimenti Veloci tra Parole (5 minuti)
+================================================================================
+
+Muoversi lettera per lettera è lento. Ecco i movimenti per PAROLE:
+
+    w = vai all'inizio della prossima parola (word)
+    b = vai all'inizio della parola precedente (back)
+    e = vai alla fine della parola corrente (end)
+
+............................................................................
+[ESERCIZIO 2.1] Parti dalla prima parola e raggiungi "FINE" usando solo 'w'
+............................................................................
+
+INIZIO uno due tre quattro cinque sei sette otto nove FINE
+
+Conta: quante volte hai premuto 'w'? [dovrebbero essere 10]
+
+............................................................................
+[ESERCIZIO 2.2] Ora torna indietro da FINE a INIZIO usando solo 'b'
+............................................................................
+
+INIZIO uno due tre quattro cinque sei sette otto nove FINE
+
+............................................................................
+[ESERCIZIO 2.3] Posizionati su "ciao" e premi 'e' per andare alla fine
+............................................................................
+
+ciao mondo come stai oggi
+
+Nota: il cursore ora è sulla 'o' di "ciao"
+
+
+================================================================================
+LEZIONE 2.5: Movimenti Avanzati - Find e ge (5 minuti)
+================================================================================
+
+Completiamo i movimenti per parole e aggiungiamo i comandi "find":
+
+    ge = vai alla FINE della parola PRECEDENTE (end of previous word)
+    f{char} = trova il carattere {char} avanti sulla riga (find forward)
+    F{char} = trova il carattere {char} indietro sulla riga (find backward)
+    t{char} = vai FINO al carattere {char} avanti (till)
+    T{char} = vai FINO al carattere {char} indietro
+    ; = ripeti l'ultimo f/F/t/T nella stessa direzione
+    , = ripeti l'ultimo f/F/t/T nella direzione opposta
+
+PERCHÉ? Questi comandi permettono movimenti PRECISI. f e ge sono tra i più
+usati dai vimmer esperti perché permettono di saltare esattamente dove serve.
+
+............................................................................
+[ESERCIZIO 2.5.1] Pratica 'ge' - Fine parola precedente
+............................................................................
+
+Istruzioni:
+1. Posizionati su "quattro" (su qualsiasi lettera)
+2. Premi 'ge' per andare alla fine di "tre" (sulla 'e')
+3. Premi ancora 'ge' per andare alla fine di "due" (sulla 'e')
+
+uno due tre quattro cinque sei
+
+Confronta: 'b' ti porta all'INIZIO della parola precedente
+           'ge' ti porta alla FINE della parola precedente
+
+............................................................................
+[ESERCIZIO 2.5.2] Pratica 'f' - Trova carattere avanti
+............................................................................
+
+Istruzioni:
+1. Posizionati sulla prima lettera della riga sotto
+2. Premi 'f,' (f seguito da virgola) per saltare alla prima virgola
+3. Premi ';' per saltare alla prossima virgola
+4. Premi ',' per tornare alla virgola precedente
+
+mele, pere, arance, banane, limoni, ciliegie
+
+Quante virgole riesci a raggiungere? [5]
+
+............................................................................
+[ESERCIZIO 2.5.3] Pratica 'F' - Trova carattere indietro
+............................................................................
+
+Istruzioni:
+1. Posizionati su "FINE" (alla fine della riga)
+2. Premi 'F-' (F maiuscola seguita da trattino) per saltare al trattino precedente
+3. Premi ';' per continuare nella stessa direzione (ancora indietro)
+
+INIZIO - primo - secondo - terzo - quarto - FINE
+
+............................................................................
+[ESERCIZIO 2.5.4] Usa 'f' con 'd' per eliminare fino a un carattere
+............................................................................
+
+Istruzioni:
+1. Posizionati su 'E' di "ELIMINA"
+2. Premi 'df)' per eliminare fino alla parentesi chiusa (inclusa)
+
+ELIMINA QUESTO (importante) resto della riga
+
+Risultato: " resto della riga"
+
+Nota: 'dt)' eliminerebbe FINO alla parentesi ma non la parentesi stessa!
+
+............................................................................
+[ESERCIZIO 2.5.5] Combinazioni potenti con f e ci
+............................................................................
+
+Istruzioni:
+1. Posizionati ovunque nella riga
+2. Premi 'f(' per andare alla parentesi aperta
+3. Premi 'ci(' per cambiare il contenuto delle parentesi
+4. Scrivi "nuovo valore" e premi ESC
+
+const result = calculate(vecchio valore) + 10;
+
+Risultato: const result = calculate(nuovo valore) + 10;
+
+
+================================================================================
+LEZIONE 3: Inizio e Fine Riga (3 minuti)
+================================================================================
+
+    0 = vai all'inizio della riga (colonna zero)
+    $ = vai alla fine della riga (pensa al $ come "end" nei regex)
+    ^ = vai al primo carattere non-spazio della riga
+
+............................................................................
+[ESERCIZIO 3.1] Posizionati a metà di questa riga, poi premi '0'
+............................................................................
+
+Questa è una riga abbastanza lunga per fare pratica con i movimenti orizzontali veloci.
+
+Il cursore ora dovrebbe essere sulla 'Q' di "Questa".
+
+............................................................................
+[ESERCIZIO 3.2] Ora premi '$' per andare alla fine
+............................................................................
+
+Questa è una riga abbastanza lunga per fare pratica con i movimenti orizzontali veloci.
+
+Il cursore ora dovrebbe essere sul punto finale.
+
+............................................................................
+[ESERCIZIO 3.3] Prova la differenza tra '0' e '^' su questa riga
+............................................................................
+
+        Questa riga ha spazi all'inizio
+
+- Premi 0: vai alla colonna 0 (primo spazio)
+- Premi ^: vai alla 'Q' (primo carattere non-spazio)
+
+
+================================================================================
+LEZIONE 4: Navigazione nel File (5 minuti)
+================================================================================
+
+    gg = vai alla prima riga del file
+    G  = vai all'ultima riga del file
+    :42 = vai alla riga 42 (sostituisci 42 con qualsiasi numero)
+
+    Ctrl-d = scorri giù di mezza pagina (down)
+    Ctrl-u = scorri su di mezza pagina (up)
+    Ctrl-f = scorri giù di una pagina intera (forward)
+    Ctrl-b = scorri su di una pagina intera (back)
+
+............................................................................
+[ESERCIZIO 4.1] Vai alla fine del file e torna qui
+............................................................................
+
+1. Premi 'G' per andare all'ultima riga
+2. Leggi cosa c'è scritto là
+3. Premi 'gg' per tornare all'inizio
+4. Digita ':118' e premi Enter per tornare a questa riga
+
+Sei tornato? Ottimo!
+
+............................................................................
+[ESERCIZIO 4.2] Pratica lo scrolling
+............................................................................
+
+1. Premi Ctrl-d per scendere di mezza pagina
+2. Premi Ctrl-u per risalire
+3. Premi Ctrl-f per scendere di una pagina intera
+4. Premi Ctrl-b per risalire
+
+Nota: Tieni premuto Ctrl mentre premi la lettera
+
+
+================================================================================
+LEZIONE 5: Entrare in Insert Mode (5 minuti)
+================================================================================
+
+Finora sei stato in NORMAL MODE (per navigare). Per SCRIVERE testo,
+devi entrare in INSERT MODE. Ci sono diversi modi:
+
+    i = inserisci PRIMA del cursore (insert)
+    a = inserisci DOPO il cursore (append)
+    I = inserisci all'INIZIO della riga
+    A = inserisci alla FINE della riga
+    o = apri una nuova riga SOTTO e inserisci
+    O = apri una nuova riga SOPRA e inserisci
+
+IMPORTANTE: Premi ESC per tornare in Normal Mode quando hai finito!
+
+............................................................................
+[ESERCIZIO 5.1] Inserisci la parola mancante
+............................................................................
+
+Istruzioni:
+1. Posizionati sulla 'm' di 'manca'
+2. Premi 'i' per entrare in Insert Mode
+3. Scrivi 'non '
+4. Premi ESC
+
+Prima:  Qui manca una parola.
+Dopo:   Qui non manca una parola.
+
+............................................................................
+[ESERCIZIO 5.2] Aggiungi testo alla fine della riga
+............................................................................
+
+Istruzioni:
+1. Vai sulla riga qui sotto
+2. Premi 'A' per andare alla fine e entrare in Insert Mode
+3. Aggiungi ' è completa!'
+4. Premi ESC
+
+Questa frase
+
+Risultato atteso: "Questa frase è completa!"
+
+............................................................................
+[ESERCIZIO 5.3] Crea una nuova riga
+............................................................................
+
+Istruzioni:
+1. Posizionati sulla riga "Riga 1"
+2. Premi 'o' per aprire una riga sotto
+3. Scrivi "Riga 1.5"
+4. Premi ESC
+
+Riga 1
+Riga 2
+Riga 3
+
+
+================================================================================
+LEZIONE 6: Eliminare Testo (5 minuti)
+================================================================================
+
+    x  = elimina il carattere sotto il cursore
+    dd = elimina l'intera riga (delete)
+    dw = elimina dalla posizione corrente alla prossima parola
+    d$ = elimina dalla posizione corrente alla fine della riga
+    D  = uguale a d$ (scorciatoia)
+
+............................................................................
+[ESERCIZIO 6.1] Elimina i caratteri extra
+............................................................................
+
+Istruzioni:
+1. Posizionati sulle lettere extra
+2. Premi 'x' per eliminarle una alla volta
+
+Questaaa frasee ha caratteriii extraaa.
+
+Risultato atteso: "Questa frase ha caratteri extra."
+
+............................................................................
+[ESERCIZIO 6.2] Elimina righe intere
+............................................................................
+
+Istruzioni:
+1. Posizionati su "ELIMINA QUESTA RIGA"
+2. Premi 'dd' per eliminarla
+3. Ripeti per le altre righe da eliminare
+
+Riga da tenere 1
+ELIMINA QUESTA RIGA
+Riga da tenere 2
+ELIMINA QUESTA RIGA
+Riga da tenere 3
+ELIMINA QUESTA RIGA
+Riga da tenere 4
+
+............................................................................
+[ESERCIZIO 6.3] Elimina parole
+............................................................................
+
+Istruzioni:
+1. Posizionati su "RIMUOVI"
+2. Premi 'dw' per eliminare la parola
+
+Questa RIMUOVI frase RIMUOVI ha RIMUOVI parole RIMUOVI extra.
+
+Risultato: "Questa frase ha parole extra."
+
+
+================================================================================
+LEZIONE 7: Copia e Incolla (5 minuti)
+================================================================================
+
+In Vim, "copiare" si dice "yank" (strappare):
+
+    yy = copia l'intera riga (yank)
+    yw = copia la parola
+    y$ = copia fino alla fine della riga
+    p  = incolla DOPO il cursore (paste)
+    P  = incolla PRIMA del cursore
+
+............................................................................
+[ESERCIZIO 7.1] Duplica questa riga
+............................................................................
+
+Istruzioni:
+1. Posizionati sulla riga qui sotto
+2. Premi 'yy' per copiarla
+3. Premi 'p' per incollarla sotto
+
+Duplicami! Sono una riga importante.
+
+Risultato: la riga apparirà due volte
+
+............................................................................
+[ESERCIZIO 7.2] Copia e incolla parole
+............................................................................
+
+Istruzioni:
+1. Posizionati su "IMPORTANTE"
+2. Premi 'yw' per copiare la parola
+3. Vai alla fine della riga successiva
+4. Premi 'p' per incollare
+
+IMPORTANTE
+Questa parola è:
+
+Risultato: "Questa parola è: IMPORTANTE"
+
+
+================================================================================
+LEZIONE 8: La Ricerca (5 minuti)
+================================================================================
+
+    /parola = cerca "parola" in avanti
+    ?parola = cerca "parola" all'indietro
+    n       = vai alla prossima occorrenza
+    N       = vai all'occorrenza precedente
+    *       = cerca la parola sotto il cursore (in avanti)
+    #       = cerca la parola sotto il cursore (indietro)
+
+............................................................................
+[ESERCIZIO 8.1] Trova tutte le occorrenze di "gatto"
+............................................................................
+
+Istruzioni:
+1. Premi / e scrivi: gatto
+2. Premi Enter
+3. Premi 'n' per andare alla prossima occorrenza
+4. Premi 'N' per tornare indietro
+
+Il gatto nero dorme sul divano accanto al cane.
+Nel giardino c'è un altro gatto, questo è bianco.
+Il gatto nero si sveglia e guarda il gatto bianco.
+I due gatti iniziano a giocare insieme.
+
+Quante occorrenze di "gatto" hai trovato? [4, più "gatti"]
+
+............................................................................
+[ESERCIZIO 8.2] Usa * per cercare velocemente
+............................................................................
+
+Istruzioni:
+1. Posizionati su una delle parole "error" qui sotto
+2. Premi '*' per cercare tutte le occorrenze
+3. Premi 'n' per navigare tra i risultati
+
+log: info - server started
+log: error - connection failed
+log: warning - slow response
+log: error - timeout
+log: info - retry successful
+log: error - database unavailable
+
+
+================================================================================
+LEZIONE 9: Sostituire Testo (5 minuti)
+================================================================================
+
+    :s/vecchio/nuovo/     = sostituisce la prima occorrenza nella riga
+    :s/vecchio/nuovo/g    = sostituisce TUTTE le occorrenze nella riga
+    :%s/vecchio/nuovo/g   = sostituisce in TUTTO il file
+    :%s/vecchio/nuovo/gc  = come sopra, ma CHIEDE CONFERMA per ogni una
+
+............................................................................
+[ESERCIZIO 9.1] Sostituisci in una singola riga
+............................................................................
+
+Istruzioni:
+1. Posizionati sulla riga qui sotto
+2. Digita :s/foo/bar/g e premi Enter
+
+foo e foo e foo fanno tre foo
+
+Risultato: "bar e bar e bar fanno tre bar"
+
+............................................................................
+[ESERCIZIO 9.2] Sostituisci in tutto il blocco
+............................................................................
+
+Istruzioni:
+1. Seleziona le righe con V (visual line mode) e j
+2. Digita :s/mela/arancia/g e premi Enter
+
+mela rossa
+mela verde
+mela gialla
+mela matura
+
+............................................................................
+[ESERCIZIO 9.3] Sostituisci con conferma
+............................................................................
+
+Istruzioni:
+1. Digita :%s/TODO/DONE/gc
+2. Premi 'y' per confermare o 'n' per saltare ogni occorrenza
+
+TODO: comprare il latte
+TODO: chiamare Mario
+TODO: finire il progetto
+TODO: rispondere alle email
+
+
+================================================================================
+LEZIONE 10: Undo e Redo (2 minuti)
+================================================================================
+
+    u     = annulla l'ultima azione (undo)
+    Ctrl-r = ripristina l'azione annullata (redo)
+
+Questi sono i tuoi migliori amici! Se sbagli qualcosa, premi 'u'.
+
+............................................................................
+[ESERCIZIO 10.1] Pratica undo e redo
+............................................................................
+
+Istruzioni:
+1. Elimina questa riga con 'dd'
+2. Premi 'u' per annullare - la riga riappare!
+3. Premi Ctrl-r per rifare l'eliminazione
+4. Premi 'u' di nuovo per riaverla
+
+Questa riga è perfetta per fare pratica con undo.
+
+
+================================================================================
+LEZIONE 11: Visual Mode - Selezione (5 minuti)
+================================================================================
+
+    v     = visual mode (seleziona caratteri)
+    V     = visual line mode (seleziona righe intere)
+    Ctrl-v = visual block mode (seleziona rettangoli)
+
+Dopo aver selezionato, puoi:
+    d = eliminare la selezione
+    y = copiare la selezione
+    c = cambiare la selezione (elimina e entra in insert mode)
+
+............................................................................
+[ESERCIZIO 11.1] Seleziona e elimina
+............................................................................
+
+Istruzioni:
+1. Posizionati su "RIMUOVI QUESTO TESTO"
+2. Premi 'v' per entrare in visual mode
+3. Muoviti con 'e' o 'w' per selezionare
+4. Premi 'd' per eliminare
+
+Questa frase ha RIMUOVI QUESTO TESTO del testo extra.
+
+............................................................................
+[ESERCIZIO 11.2] Seleziona righe intere
+............................................................................
+
+Istruzioni:
+1. Posizionati sulla prima riga "DA COPIARE"
+2. Premi 'V' per visual line mode
+3. Premi 'j' due volte per selezionare 3 righe
+4. Premi 'y' per copiare
+5. Vai sotto "INCOLLA QUI:" e premi 'p'
+
+DA COPIARE: Riga uno
+DA COPIARE: Riga due
+DA COPIARE: Riga tre
+
+INCOLLA QUI:
+
+
+............................................................................
+[ESERCIZIO 11.3] Visual Block - Seleziona colonne
+............................................................................
+
+Istruzioni:
+1. Posizionati sul primo "XX"
+2. Premi Ctrl-v per visual block mode
+3. Premi 'j' 4 volte per selezionare in verticale
+4. Premi 'l' per estendere la selezione
+5. Premi 'd' per eliminare il blocco
+
+nome:XX:valore1
+nome:XX:valore2
+nome:XX:valore3
+nome:XX:valore4
+nome:XX:valore5
+
+Risultato: tutti gli "XX:" vengono rimossi
+
+
+================================================================================
+LEZIONE 12: Text Objects - La Magia di Vim (10 minuti)
+================================================================================
+
+Questo è ciò che rende Vim POTENTISSIMO. I text objects ti permettono
+di operare su "oggetti" di testo (parole, frasi, parentesi, ecc.)
+
+Formato: [operatore][i/a][oggetto]
+
+    i = "inside" (dentro, escludi i delimitatori)
+    a = "around" (attorno, includi i delimitatori)
+
+Oggetti comuni:
+    w = parola (word)
+    s = frase (sentence)
+    p = paragrafo
+    " = virgolette
+    ' = apici
+    ( o ) = parentesi tonde
+    [ o ] = parentesi quadre
+    { o } = parentesi graffe
+    < o > = parentesi angolari
+    t = tag HTML
+
+Esempi:
+    ciw = cambia la parola intera (change inside word)
+    di" = elimina il contenuto tra virgolette
+    ya( = copia tutto incluse le parentesi
+
+............................................................................
+[ESERCIZIO 12.1] Cambia una parola intera con ciw
+............................................................................
+
+Istruzioni:
+1. Posizionati su qualsiasi lettera di "VECCHIO"
+2. Premi 'ciw'
+3. Scrivi 'nuovo'
+4. Premi ESC
+
+Il valore VECCHIO deve essere cambiato.
+
+Nota: non importa dove sei nella parola, ciw cambia tutta la parola!
+
+............................................................................
+[ESERCIZIO 12.2] Cambia il contenuto tra virgolette con ci"
+............................................................................
+
+Istruzioni:
+1. Posizionati ovunque tra le virgolette
+2. Premi 'ci"'
+3. Scrivi 'Hello World'
+4. Premi ESC
+
+const message = "SOSTITUISCIMI";
+
+Risultato: const message = "Hello World";
+
+............................................................................
+[ESERCIZIO 12.3] Elimina il contenuto delle parentesi con di(
+............................................................................
+
+Istruzioni:
+1. Posizionati ovunque dentro le parentesi
+2. Premi 'di('
+
+function calculate(RIMUOVI TUTTO QUESTO) {
+    return result;
+}
+
+Risultato: function calculate() {
+
+............................................................................
+[ESERCIZIO 12.4] Pratica con diversi text objects
+............................................................................
+
+const data = {
+    name: "Mario Rossi",
+    email: "mario@test.com",
+    tags: ["admin", "user", "moderator"]
+};
+
+Prova questi comandi:
+- Posizionati su "Mario" e prova: ciw, di", ci"
+- Posizionati dentro le [] e prova: di[, ci[
+- Posizionati dentro le {} e prova: di{, ci{
+
+
+================================================================================
+LEZIONE 13: Le Macro - Automatizza Tutto (5 minuti)
+================================================================================
+
+Le macro registrano una sequenza di comandi e la ripetono.
+
+    qa = inizia a registrare nella macro 'a'
+    q  = ferma la registrazione
+    @a = esegui la macro 'a'
+    @@ = ripeti l'ultima macro eseguita
+
+............................................................................
+[ESERCIZIO 13.1] Crea una macro per trasformare TODO in DONE
+............................................................................
+
+Istruzioni:
+1. Posizionati sulla prima riga TODO
+2. Premi 'qa' per iniziare a registrare nella macro 'a'
+3. Premi '0' per andare all'inizio della riga
+4. Premi 'cw' per cambiare la parola
+5. Scrivi 'DONE' e premi ESC
+6. Premi 'j' per andare alla riga successiva
+7. Premi 'q' per fermare la registrazione
+8. Premi '@a' per ripetere, poi '@@' per le altre righe
+
+TODO: Task numero uno
+TODO: Task numero due
+TODO: Task numero tre
+TODO: Task numero quattro
+TODO: Task numero cinque
+
+Risultato: tutti i TODO diventano DONE
+
+............................................................................
+[ESERCIZIO 13.2] Macro per aggiungere prefisso
+............................................................................
+
+Istruzioni:
+1. Posizionati su "elemento1"
+2. Premi 'qa' per registrare
+3. Premi 'I' per inserire all'inizio
+4. Scrivi '- ' e premi ESC
+5. Premi 'j' e poi 'q' per fermare
+6. Premi '4@a' per ripetere 4 volte
+
+elemento1
+elemento2
+elemento3
+elemento4
+elemento5
+
+Risultato: tutti hanno il prefisso "- "
+
+
+================================================================================
+LEZIONE 14: Indentazione (3 minuti)
+================================================================================
+
+    >> = indenta la riga a destra
+    << = indenta la riga a sinistra
+    == = auto-indenta la riga
+    gg=G = auto-indenta tutto il file
+
+In visual mode:
+    > = indenta la selezione a destra
+    < = indenta la selezione a sinistra
+    = = auto-indenta la selezione
+
+............................................................................
+[ESERCIZIO 14.1] Sistema l'indentazione di questo codice
+............................................................................
+
+Istruzioni:
+1. Seleziona tutto il blocco con 'V' e 'j'
+2. Premi '=' per auto-indentare
+
+function messyCode(){
+const x=1;
+const y=2;
+if(x>0){
+console.log("positive");
+}else{
+console.log("negative");
+}
+return x+y;
+}
+
+
+================================================================================
+LEZIONE 15: Numeri - Incrementa e Decrementa (2 minuti)
+================================================================================
+
+    Ctrl-a = incrementa il numero sotto il cursore
+    Ctrl-x = decrementa il numero sotto il cursore
+
+............................................................................
+[ESERCIZIO 15.1] Incrementa questi numeri
+............................................................................
+
+Istruzioni:
+1. Posizionati su "0" nella prima riga
+2. Premi Ctrl-a per incrementare
+3. Ripeti per le altre righe (o usa una macro!)
+
+count = 0
+count = 0
+count = 0
+count = 0
+count = 0
+
+Obiettivo: trasformali in 1, 2, 3, 4, 5
+
+Suggerimento avanzato: usa visual block (Ctrl-v), seleziona tutti gli 0,
+poi premi 'g Ctrl-a' per incrementare progressivamente!
+
+
+================================================================================
+LEZIONE 16: Marks - Segnalibri nel File (3 minuti)
+================================================================================
+
+    ma = crea un mark chiamato 'a' nella posizione corrente
+    'a = vai alla riga del mark 'a'
+    `a = vai alla posizione esatta del mark 'a'
+
+Marks minuscoli (a-z) = locali al file
+Marks maiuscoli (A-Z) = globali, funzionano tra file diversi
+
+............................................................................
+[ESERCIZIO 16.1] Crea e usa i marks
+............................................................................
+
+Istruzioni:
+1. Posizionati qui e premi 'ma' per creare il mark 'a'
+
+   >>> MARK A: SEI PARTITO DA QUI <<<
+
+2. Ora vai alla fine del file con 'G'
+3. Premi 'mb' per creare il mark 'b'
+4. Digita 'a per tornare al mark 'a'
+5. Digita 'b per tornare al mark 'b'
+
+
+================================================================================
+LEZIONE 17: Finestre e Tab (3 minuti)
+================================================================================
+
+    :split     = dividi orizzontalmente (o :sp)
+    :vsplit    = dividi verticalmente (o :vsp)
+    Ctrl-w h/j/k/l = naviga tra le finestre
+    Ctrl-w c   = chiudi la finestra corrente
+    Ctrl-w o   = chiudi tutte le altre finestre
+
+    :tabnew    = apri un nuovo tab
+    gt         = vai al tab successivo
+    gT         = vai al tab precedente
+    :tabclose  = chiudi il tab corrente
+
+............................................................................
+[ESERCIZIO 17.1] Prova le finestre
+............................................................................
+
+1. Digita :vsplit e premi Enter
+   - Ora hai due finestre affiancate con lo stesso file
+2. Premi Ctrl-w l per andare alla finestra destra
+3. Premi Ctrl-w h per tornare a sinistra
+4. Digita :q per chiudere una finestra
+
+
+================================================================================
+LEZIONE 18: Salvare e Uscire (2 minuti)
+================================================================================
+
+    :w        = salva il file (write)
+    :q        = esci (quit) - fallisce se ci sono modifiche non salvate
+    :wq       = salva ed esci
+    :q!       = esci SENZA salvare (forza)
+    :x        = salva ed esci (come :wq ma salva solo se ci sono modifiche)
+    ZZ        = salva ed esci (scorciatoia per :x)
+    ZQ        = esci senza salvare (scorciatoia per :q!)
+
+
+================================================================================
+RIEPILOGO COMANDI ESSENZIALI
+================================================================================
+
+MOVIMENTI
+---------
+h j k l         Sinistra, giù, su, destra
+w b e ge        Parola successiva, precedente, fine, fine precedente
+f{c} F{c}       Trova carattere avanti/indietro sulla riga
+t{c} T{c}       Vai fino al carattere (senza includerlo)
+; ,             Ripeti ultimo f/F/t/T stessa/opposta direzione
+0 $ ^           Inizio riga, fine riga, primo carattere non-spazio
+gg G            Inizio file, fine file
+Ctrl-d/u        Scroll mezza pagina giù/su
+Ctrl-f/b        Scroll pagina intera avanti/indietro
+
+MODI
+----
+i a             Insert mode: prima/dopo cursore
+I A             Insert mode: inizio/fine riga
+o O             Nuova riga sotto/sopra
+v V Ctrl-v      Visual mode: carattere/riga/blocco
+ESC             Torna in Normal mode
+
+EDITING
+-------
+x               Elimina carattere
+dd dw d$        Elimina riga/parola/fino a fine riga
+yy yw           Copia riga/parola
+p P             Incolla dopo/prima
+u Ctrl-r        Undo/Redo
+.               Ripeti ultimo comando
+
+TEXT OBJECTS
+------------
+ciw caw         Cambia dentro/attorno parola
+ci" ca"         Cambia dentro/attorno virgolette
+di( da(         Elimina dentro/attorno parentesi
+yi{ ya{         Copia dentro/attorno graffe
+
+RICERCA
+-------
+/pattern        Cerca in avanti
+?pattern        Cerca indietro
+n N             Prossima/precedente occorrenza
+* #             Cerca parola sotto cursore avanti/indietro
+
+SOSTITUZIONE
+------------
+:s/old/new/g    Sostituisci nella riga
+:%s/old/new/g   Sostituisci in tutto il file
+:%s/old/new/gc  Sostituisci con conferma
+
+MACRO
+-----
+qa ... q        Registra macro 'a'
+@a @@           Esegui macro 'a' / ripeti ultima
+
+FILE
+----
+:w :q :wq :q!   Salva, esci, salva+esci, esci forzato
+:e filename     Apri file
+:split :vsplit  Dividi finestra
+
+
+================================================================================
+ESERCIZI FINALI - Metti Tutto Insieme!
+================================================================================
+
+ESERCIZIO A: Correggi tutti gli errori di battitura
+---------------------------------------------------
+Usa la ricerca e sostituzione, oppure naviga e correggi manualmente.
+
+Il programma funziona corretamente e ritorna un valroe.
+Questo è un eesmpio di codice con errori di batittura.
+La variabile contiene un valore inaspetato.
+
+ESERCIZIO B: Riordina questa lista alfabeticamente
+--------------------------------------------------
+Suggerimento: seleziona le righe con V, poi digita :sort
+
+Zucchero
+Mela
+Banana
+Arancia
+Limone
+Ciliegia
+
+ESERCIZIO C: Trasforma questo codice
+------------------------------------
+Obiettivo: rinomina 'oldVar' in 'newVar' ovunque
+
+const oldVar = "test";
+console.log(oldVar);
+processData(oldVar);
+return oldVar;
+
+Suggerimento: usa :%s/oldVar/newVar/g
+
+ESERCIZIO D: Aggiungi prefissi con Visual Block
+-----------------------------------------------
+Obiettivo: aggiungi "ITEM: " all'inizio di ogni riga
+
+primo
+secondo
+terzo
+quarto
+quinto
+
+Passi:
+1. Ctrl-v sulla 'p' di 'primo'
+2. j j j j per selezionare 5 righe
+3. I per inserire
+4. Scrivi 'ITEM: '
+5. ESC (attendi un attimo, apparirà su tutte le righe)
+
+
+================================================================================
+                         CONGRATULAZIONI!
+================================================================================
+
+Hai completato il tutorial! Ora conosci:
+
+- I movimenti base e avanzati
+- Come entrare e uscire dai vari modi
+- Come eliminare, copiare e incollare
+- Come cercare e sostituire
+- I potentissimi text objects
+- Come creare e usare le macro
+- Come gestire finestre e tab
+
+PROSSIMI PASSI:
+1. Pratica ogni giorno per 15 minuti
+2. Impara un nuovo comando alla settimana
+3. Personalizza il tuo ~/.config/nvim/init.lua
+
+RISORSE:
+- Dentro Neovim, digita :Tutor per il tutorial integrato
+- :help <comando> per la documentazione di qualsiasi comando
+
+Torna all'inizio con 'gg' e rifai gli esercizi finché non diventano naturali!
+
+================================================================================

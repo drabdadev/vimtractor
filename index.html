@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VimTractor - Learn Vim by Playing</title>
+    <link rel="stylesheet" href="css/style.css?v=13">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="hud">
+            <div id="score">Score: <span id="score-value">0</span></div>
+            <div id="level-indicator">
+                <span id="speed-level">Lv.1</span>
+            </div>
+            <div id="high-score">High: <span id="high-score-value">0</span></div>
+            <div id="lives">
+                <span id="lives-display">🧰🧰🧰</span>
+            </div>
+            <div id="powerups">
+                <span id="powerup-gas" class="powerup hidden" title="dd: pulisci riga (1) / dG: pulisci schermo (2)">⛽<span class="gas-count">0</span></span>
+                <span id="debug-toggle" class="debug-toggle" title="Debug Mode: OFF - Click to pause scroll">🐛</span>
+            </div>
+        </div>
+        <div id="overlay" class="hidden">
+            <div id="name-screen" class="screen">
+                <h1>VimTractor</h1>
+                <p class="subtitle">Learn Vim commands by playing!</p>
+                <div class="name-input-container">
+                    <label for="player-name">Enter your name:</label>
+                    <input type="text" id="player-name" maxlength="12" placeholder="Your name" autocomplete="off">
+                    <p class="name-hint">Press <kbd>Enter</kbd> to continue</p>
+                </div>
+            </div>
+            <div id="menu-screen" class="screen hidden">
+                <h1>VimTractor</h1>
+                <p class="subtitle">Welcome, <span id="player-display-name"></span>!</p>
+                <div class="menu-commands">
+                    <div class="command-row">
+                        <span class="command-label">Move</span>
+                        <span class="command-keys"><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd></span>
+                    </div>
+                    <div class="command-row">
+                        <span class="command-label">Line start/end</span>
+                        <span class="command-keys"><kbd>0</kbd><kbd>$</kbd></span>
+                    </div>
+                    <div class="command-row">
+                        <span class="command-label">Word jump</span>
+                        <span class="command-keys"><kbd>w</kbd><kbd>b</kbd></span>
+                    </div>
+                    <div class="command-row">
+                        <span class="command-label">Screen top/bottom</span>
+                        <span class="command-keys"><kbd>gg</kbd><kbd>G</kbd></span>
+                    </div>
+                </div>
+                <p class="controls-subtitle">Avoid rocks, collect vegetables!</p>
+                <p class="start-prompt">Press any key to start</p>
+                <div class="menu-footer">
+                    <span><kbd>Tab</kbd> Leaderboard</span>
+                    <span><kbd>:help</kbd> All commands</span>
+                    <span class="exit-hint"><kbd>:q</kbd> Exit</span>
+                </div>
+            </div>
+            <div id="leaderboard-screen" class="screen hidden">
+                <h1>Leaderboard</h1>
+                <div id="leaderboard-list" class="leaderboard-container">
+                    <!-- Populated dynamically -->
+                </div>
+                <p class="help-footer">Press <kbd>Esc</kbd> to go back</p>
+            </div>
+            <div id="gameover-screen" class="screen hidden">
+                <h1>Game Over</h1>
+                <p>Score: <span id="final-score">0</span></p>
+                <p>High Score: <span id="final-high-score">0</span></p>
+                <p class="start-prompt">Press Enter to continue</p>
+                <p class="leaderboard-hint">Press <kbd>Tab</kbd> for leaderboard</p>
+            </div>
+            <div id="help-screen" class="screen hidden">
+                <h1>Vim Commands</h1>
+                <div class="help-content">
+                    <div class="help-section">
+                        <h2>Basic Movement</h2>
+                        <div class="help-row"><kbd>h</kbd> <span>Move left</span></div>
+                        <div class="help-row"><kbd>j</kbd> <span>Move down</span></div>
+                        <div class="help-row"><kbd>k</kbd> <span>Move up</span></div>
+                        <div class="help-row"><kbd>l</kbd> <span>Move right</span></div>
+                    </div>
+                    <div class="help-section">
+                        <h2>Line Movement</h2>
+                        <div class="help-row"><kbd>0</kbd> <span>Go to first column</span></div>
+                        <div class="help-row"><kbd>$</kbd> <span>Go to last column</span></div>
+                    </div>
+                    <div class="help-section">
+                        <h2>Word Movement</h2>
+                        <div class="help-row"><kbd>w</kbd> <span>Next obstacle/item</span></div>
+                        <div class="help-row"><kbd>b</kbd> <span>Previous obstacle/item</span></div>
+                        <div class="help-row"><kbd>e</kbd> <span>End of next item</span></div>
+                        <div class="help-row"><kbd>ge</kbd> <span>End of previous item</span></div>
+                    </div>
+                    <div class="help-section">
+                        <h2>Screen Movement</h2>
+                        <div class="help-row"><kbd>gg</kbd> <span>Go to top (safe row)</span></div>
+                        <div class="help-row"><kbd>G</kbd> <span>Go to bottom (safe row)</span></div>
+                        <div class="help-row"><kbd>Ctrl+f</kbd> <span>Page down</span></div>
+                        <div class="help-row"><kbd>Ctrl+b</kbd> <span>Page up</span></div>
+                    </div>
+                    <div class="help-section">
+                        <h2>Count Prefix</h2>
+                        <div class="help-row"><kbd>5j</kbd> <span>Move down 5 times</span></div>
+                        <div class="help-row"><kbd>3l</kbd> <span>Move right 3 times</span></div>
+                        <p class="help-tip">Add any number before a movement!</p>
+                    </div>
+                    <div class="help-section">
+                        <h2>Actions (need gas cans ⛽)</h2>
+                        <div class="help-row"><kbd>dd</kbd> <span>Clear row, collect points</span> <span class="powerup-icon">1 gas can</span></div>
+                        <div class="help-row"><kbd>dG</kbd> <span>Clear screen, collect all</span> <span class="powerup-icon">2 gas cans</span></div>
+                    </div>
+                    <div class="help-section">
+                        <h2>Command Mode</h2>
+                        <div class="help-row"><kbd>:</kbd> <span>Enter command mode</span></div>
+                        <div class="help-row"><kbd>:q</kbd> <span>Quit game</span></div>
+                        <div class="help-row"><kbd>:restart</kbd> <span>Restart game</span></div>
+                    </div>
+                </div>
+                <p class="help-footer">Press <kbd>:q</kbd> or <kbd>Esc</kbd> to close</p>
+            </div>
+        </div>
+        <div id="vim-statusline">
+            <span id="mode-indicator">NORMAL</span>
+            <span id="command-line"><span id="command-prefix"></span><span id="command-buffer"></span><span id="cursor">_</span></span>
+            <span id="statusline-hint">:help</span>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js?v=14"></script>
+</body>
+</html>
