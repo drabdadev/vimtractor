@@ -1,4 +1,4 @@
-import { PLAYER, GRID_COLS, CELL_SIZE, ANIMATION, STARTING_LIVES } from '../utils/Constants.js?v=10';
+import { PLAYER, GRID_COLS, CELL_SIZE, ANIMATION, STARTING_LIVES } from '../utils/Constants.js';
 
 export class Tractor {
     constructor() {
@@ -44,7 +44,17 @@ export class Tractor {
 
     // Update animation (called each frame)
     updateAnimation(deltaTime) {
-        if (!this.isAnimating) return;
+        if (!this.isAnimating) {
+            // When not animating, ensure visual position stays synced with logical position
+            // This prevents drift when camera scrolls without tractor movement
+            const targetX = this.col * CELL_SIZE;
+            const targetY = this.row * CELL_SIZE;
+            if (this.visualX !== targetX || this.visualY !== targetY) {
+                this.visualX = targetX;
+                this.visualY = targetY;
+            }
+            return;
+        }
 
         this.animationProgress += deltaTime / ANIMATION.MOVE_DURATION;
 

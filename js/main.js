@@ -1,4 +1,4 @@
-import { Game } from './game/Game.js';
+import { Game } from './game/Game.js?v=28';
 
 // Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,6 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Debug toggle click handler
     document.getElementById('debug-toggle')?.addEventListener('click', () => {
         game.toggleDebugMode();
+    });
+
+    // Help toggle click handler
+    document.getElementById('help-toggle')?.addEventListener('click', () => {
+        game.hud.toggleHelp();
     });
 
     console.log('VimTractor loaded! Use h/j/k/l to move. Press any key to start.');

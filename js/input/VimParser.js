@@ -1,4 +1,4 @@
-import { VIM } from '../utils/Constants.js?v=10';
+import { VIM } from '../utils/Constants.js';
 
 // Vim command types
 export const COMMAND_TYPES = {
@@ -33,9 +33,11 @@ export class VimParser {
         if (this.countTimeout) {
             clearTimeout(this.countTimeout);
         }
+        // Timeout only resets the count prefix, NOT the pending key
+        // In Vim, operators like 'd' wait indefinitely for the motion
         this.countTimeout = setTimeout(() => {
             this.resetCount();
-            this.pendingKey = null;
+            // pendingKey is NOT reset - Vim behavior
         }, VIM.COUNT_TIMEOUT);
     }
 
@@ -54,6 +56,12 @@ export class VimParser {
     }
 
     handleNormalMode(key, ctrlKey, shiftKey) {
+        // Ignore modifier-only key events (Shift, Control, Alt, Meta)
+        // These come as separate events before the actual key
+        if (['Shift', 'Control', 'Alt', 'Meta'].includes(key)) {
+            return false;
+        }
+
         // Check for Ctrl combinations first
         if (ctrlKey) {
             return this.handleCtrlKey(key);
@@ -269,6 +277,9 @@ export class VimParser {
             case 'h':
             case '?':
                 this.emitCommand({ type: 'help', action: 'toggle' });
+                break;
+            case 'drabda':
+                this.emitCommand({ type: COMMAND_TYPES.COMMAND_LINE, command: 'drabda' });
                 break;
             default:
                 // Unknown command

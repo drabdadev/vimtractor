@@ -1,3 +1,6 @@
+import { themeManager } from '../utils/ThemeManager.js';
+import { SloganManager } from '../ui/SloganManager.js';
+
 export class HUD {
     constructor() {
         this.scoreEl = document.getElementById('score-value');
@@ -5,6 +8,9 @@ export class HUD {
         this.overlay = document.getElementById('overlay');
         this.nameScreen = document.getElementById('name-screen');
         this.menuScreen = document.getElementById('menu-screen');
+
+        // Slogan typewriter
+        this.sloganManager = new SloganManager('slogan');
         this.gameoverScreen = document.getElementById('gameover-screen');
         this.helpScreen = document.getElementById('help-screen');
         this.leaderboardScreen = document.getElementById('leaderboard-screen');
@@ -28,15 +34,47 @@ export class HUD {
         this.levelIndicator = document.getElementById('level-indicator');
         this.speedLevelEl = document.getElementById('speed-level');
 
-        // Lives display
-        this.livesDisplay = document.getElementById('lives-display');
+        // Lives indicator
+        this.livesIndicator = document.getElementById('lives-indicator');
+        this.livesCount = document.getElementById('lives-count');
 
         // Gas can indicator
         this.powerupGas = document.getElementById('powerup-gas');
-        this.gasCount = document.querySelector('.gas-count');
+        this.gasCount = document.getElementById('gas-count');
 
         // Debug toggle
         this.debugToggle = document.getElementById('debug-toggle');
+
+        // Theme toggle
+        this.themeToggle = document.getElementById('theme-toggle');
+        this.setupThemeToggle();
+    }
+
+    setupThemeToggle() {
+        if (this.themeToggle) {
+            // Set initial state
+            this.updateThemeToggle(themeManager.isDrabdaMode());
+
+            // Add click handler
+            this.themeToggle.addEventListener('click', () => {
+                const isDrabda = themeManager.toggleDrabda();
+                this.updateThemeToggle(isDrabda);
+            });
+        }
+    }
+
+    updateThemeToggle(isDrabda) {
+        if (this.themeToggle) {
+            // Keep label fixed, only toggle active state for on/off effect
+            this.themeToggle.title = isDrabda
+                ? 'Drab mode ON (:drabda)'
+                : 'Drab mode OFF (:drabda)';
+            if (isDrabda) {
+                this.themeToggle.classList.add('active');
+            } else {
+                this.themeToggle.classList.remove('active');
+            }
+        }
     }
 
     updateSpeedLevel(level, name) {
@@ -151,6 +189,14 @@ export class HUD {
         if (this.playerDisplayName && playerName) {
             this.playerDisplayName.textContent = playerName;
         }
+        // Start slogan typewriter
+        this.sloganManager.start();
+    }
+
+    hideMenu() {
+        this.menuScreen.classList.add('hidden');
+        // Stop slogan typewriter
+        this.sloganManager.stop();
     }
 
     showLeaderboard(leaderboard, currentPlayerName = null) {
@@ -218,17 +264,24 @@ export class HUD {
     hideOverlay() {
         this.overlay.classList.add('hidden');
         this.helpVisible = false;
+        // Stop slogan typewriter when leaving menu
+        this.sloganManager.stop();
     }
 
     showHelp() {
         // Track which screen was visible before help
+        // Only check screens if overlay was already visible (not during gameplay)
         this.previousScreen = null;
-        if (!this.menuScreen.classList.contains('hidden')) {
-            this.previousScreen = 'menu';
-        } else if (!this.gameoverScreen.classList.contains('hidden')) {
-            this.previousScreen = 'gameover';
-        } else if (!this.leaderboardScreen.classList.contains('hidden')) {
-            this.previousScreen = 'leaderboard';
+        const overlayWasVisible = !this.overlay.classList.contains('hidden');
+
+        if (overlayWasVisible) {
+            if (!this.menuScreen.classList.contains('hidden')) {
+                this.previousScreen = 'menu';
+            } else if (!this.gameoverScreen.classList.contains('hidden')) {
+                this.previousScreen = 'gameover';
+            } else if (!this.leaderboardScreen.classList.contains('hidden')) {
+                this.previousScreen = 'leaderboard';
+            }
         }
 
         this.overlay.classList.remove('hidden');
@@ -299,10 +352,18 @@ export class HUD {
         }, duration);
     }
 
-    // Lives display
+    // Lives display - show count next to icon
     updateLives(lives) {
-        if (this.livesDisplay) {
-            this.livesDisplay.textContent = '🚜'.repeat(Math.max(0, lives));
+        if (this.livesCount) {
+            this.livesCount.textContent = Math.max(0, lives);
+        }
+        // Visual feedback when low on lives
+        if (this.livesIndicator) {
+            if (lives <= 1) {
+                this.livesIndicator.classList.add('critical');
+            } else {
+                this.livesIndicator.classList.remove('critical');
+            }
         }
     }
 

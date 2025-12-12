@@ -4,24 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VimTractor - Learn Vim by Playing</title>
-    <link rel="stylesheet" href="css/style.css?v=13">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚜</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css?v=28">
 </head>
 <body>
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
         <div id="hud">
-            <div id="score">Score: <span id="score-value">0</span></div>
-            <div id="level-indicator">
-                <span id="speed-level">Lv.1</span>
+            <div class="hud-left">
+                <div id="score">Score: <span id="score-value">0</span></div>
             </div>
-            <div id="high-score">High: <span id="high-score-value">0</span></div>
-            <div id="lives">
-                <span id="lives-display">🧰🧰🧰</span>
+            <div class="hud-center">
+                <div id="level-indicator">
+                    <span id="speed-level">Lv.1</span>
+                </div>
             </div>
-            <div id="powerups">
-                <span id="powerup-gas" class="powerup hidden" title="dd: pulisci riga (1) / dG: pulisci schermo (2)">⛽<span class="gas-count">0</span></span>
-                <span id="debug-toggle" class="debug-toggle" title="Debug Mode: OFF - Click to pause scroll">🐛</span>
+            <div class="hud-right">
+                <div id="high-score"><span id="high-score-value">0</span></div>
+                <div id="hud-items">
+                    <span id="lives-indicator" class="hud-item" title="Lives remaining">🚜<span id="lives-count" class="item-count">3</span></span>
+                    <span id="powerup-gas" class="hud-item hidden" title="dd: pulisci riga (2) / dG: pulisci schermo (10)">⛽<span id="gas-count" class="item-count">0</span></span>
+                </div>
             </div>
+        </div>
+        <!-- Sidebar for controls -->
+        <div id="dev-sidebar">
+            <span id="theme-toggle" class="sidebar-btn" title="Drab mode OFF (:drabda)">DR</span>
+            <span id="debug-toggle" class="sidebar-btn" title="Debug Mode: OFF - Click to pause scroll">🐛</span>
+            <span id="help-toggle" class="sidebar-btn" title="Help (:help)">?</span>
         </div>
         <div id="overlay" class="hidden">
             <div id="name-screen" class="screen">
@@ -34,32 +47,16 @@
                 </div>
             </div>
             <div id="menu-screen" class="screen hidden">
-                <h1>VimTractor</h1>
-                <p class="subtitle">Welcome, <span id="player-display-name"></span>!</p>
-                <div class="menu-commands">
-                    <div class="command-row">
-                        <span class="command-label">Move</span>
-                        <span class="command-keys"><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd></span>
-                    </div>
-                    <div class="command-row">
-                        <span class="command-label">Line start/end</span>
-                        <span class="command-keys"><kbd>0</kbd><kbd>$</kbd></span>
-                    </div>
-                    <div class="command-row">
-                        <span class="command-label">Word jump</span>
-                        <span class="command-keys"><kbd>w</kbd><kbd>b</kbd></span>
-                    </div>
-                    <div class="command-row">
-                        <span class="command-label">Screen top/bottom</span>
-                        <span class="command-keys"><kbd>gg</kbd><kbd>G</kbd></span>
-                    </div>
+                <div class="menu-content">
+                    <h1>VimTractor</h1>
+                    <p class="subtitle">Welcome, <span id="player-display-name"></span>!</p>
+                    <p id="slogan" class="slogan-typewriter"></p>
+                    <p class="start-prompt">Press any key to start</p>
                 </div>
-                <p class="controls-subtitle">Avoid rocks, collect vegetables!</p>
-                <p class="start-prompt">Press any key to start</p>
                 <div class="menu-footer">
                     <span><kbd>Tab</kbd> Leaderboard</span>
-                    <span><kbd>:help</kbd> All commands</span>
-                    <span class="exit-hint"><kbd>:q</kbd> Exit</span>
+                    <span><kbd>?</kbd> Help</span>
+                    <span><kbd>:q</kbd> Exit</span>
                 </div>
             </div>
             <div id="leaderboard-screen" class="screen hidden">
@@ -113,14 +110,15 @@
                     </div>
                     <div class="help-section">
                         <h2>Actions (need gas cans ⛽)</h2>
-                        <div class="help-row"><kbd>dd</kbd> <span>Clear row, collect points</span> <span class="powerup-icon">1 gas can</span></div>
-                        <div class="help-row"><kbd>dG</kbd> <span>Clear screen, collect all</span> <span class="powerup-icon">2 gas cans</span></div>
+                        <div class="help-row"><kbd>dd</kbd> <span>Clear row, collect points</span> <span class="powerup-icon">2 gas cans</span></div>
+                        <div class="help-row"><kbd>dG</kbd> <span>Clear screen, collect all</span> <span class="powerup-icon">10 gas cans</span></div>
                     </div>
                     <div class="help-section">
                         <h2>Command Mode</h2>
                         <div class="help-row"><kbd>:</kbd> <span>Enter command mode</span></div>
                         <div class="help-row"><kbd>:q</kbd> <span>Quit game</span></div>
                         <div class="help-row"><kbd>:restart</kbd> <span>Restart game</span></div>
+                        <div class="help-row"><kbd>:drabda</kbd> <span>Toggle Drab mode</span></div>
                     </div>
                 </div>
                 <p class="help-footer">Press <kbd>:q</kbd> or <kbd>Esc</kbd> to close</p>
@@ -133,6 +131,6 @@
         </div>
     </div>
 
-    <script type="module" src="js/main.js?v=14"></script>
+    <script type="module" src="js/main.js?v=28"></script>
 </body>
 </html>

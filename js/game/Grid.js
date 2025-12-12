@@ -1,4 +1,4 @@
-import { GRID_COLS, CELL_TYPES } from '../utils/Constants.js?v=10';
+import { GRID_COLS, CELL_TYPES } from '../utils/Constants.js';
 
 export class Grid {
     constructor() {

@@ -1,4 +1,4 @@
-import { CELL_TYPES } from '../utils/Constants.js?v=10';
+import { CELL_TYPES } from '../utils/Constants.js';
 
 export class Collision {
     constructor(grid, tractor) {

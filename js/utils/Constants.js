@@ -1,11 +1,11 @@
-// Grid configuration (enlarged by 50%)
-export const GRID_COLS = 18;
-export const GRID_ROWS = 30;
-export const CELL_SIZE = 32;
+// Grid configuration (4:3 aspect ratio)
+export const GRID_COLS = 24;
+export const GRID_ROWS = 18;
+export const CELL_SIZE = 48;  // 50% larger cells for better visibility
 
 // Canvas dimensions
-export const CANVAS_WIDTH = GRID_COLS * CELL_SIZE;  // 480px
-export const CANVAS_HEIGHT = GRID_ROWS * CELL_SIZE; // 800px
+export const CANVAS_WIDTH = GRID_COLS * CELL_SIZE;  // 1152px
+export const CANVAS_HEIGHT = GRID_ROWS * CELL_SIZE; // 864px
 
 // Game timing
 export const TARGET_FPS = 60;
@@ -22,7 +22,7 @@ export const SPEED_LEVELS = [
 export const LEVEL_DURATION = 60000; // 1 minute per level in ms
 
 // Spawn rates (probability per row)
-export const OBSTACLE_SPAWN_RATE = 0.25; // reduced for easier gameplay
+export const OBSTACLE_SPAWN_RATE = 0.18; // reduced for balanced difficulty progression
 export const ITEM_SPAWN_RATE = 0.15;
 export const POWERUP_SPAWN_RATE = 0.05;
 
@@ -58,8 +58,8 @@ export const ITEMS = {
 };
 
 // Powerup subtypes - gas cans give special abilities
-// dd (1 gas can) = clear row and collect points
-// dG (2+ gas cans) = clear screen and collect all points
+// dd (2 gas cans) = clear row and collect points, lives, gas cans
+// dG (10 gas cans) = clear screen and collect all points, lives, gas cans
 export const POWERUPS = {
     GAS_CAN: { emoji: '⛽', name: 'gas-can' }
 };
@@ -86,7 +86,7 @@ export const STARTING_LIVES = 3;
 export const PLAYER = {
     EMOJI: '🚜',
     START_COL: Math.floor(GRID_COLS / 2),
-    START_ROW: Math.floor(GRID_ROWS / 2) + 2  // Row 17 - slightly below middle
+    START_ROW: Math.floor(GRID_ROWS / 2) + 2  // Slightly below middle
 };
 
 

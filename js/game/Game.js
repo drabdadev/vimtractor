@@ -1,16 +1,17 @@
 import {
     GAME_STATES, SPEED_LEVELS, LEVEL_DURATION, GRID_ROWS, CELL_TYPES, CELL_SIZE, PLAYER, CANVAS_HEIGHT
-} from '../utils/Constants.js?v=11';
-import { Grid } from './Grid.js?v=11';
-import { Tractor } from './Tractor.js?v=11';
-import { Spawner } from './Spawner.js?v=11';
-import { Collision } from './Collision.js?v=11';
-import { VimParser, COMMAND_TYPES } from '../input/VimParser.js?v=13';
-import { InputHandler } from '../input/InputHandler.js?v=11';
-import { Renderer } from '../render/Renderer.js?v=11';
-import { HUD } from '../render/HUD.js?v=11';
-import { Storage } from '../utils/Storage.js?v=11';
-import { soundEngine } from '../audio/SoundEngine.js?v=12';
+} from '../utils/Constants.js';
+import { Grid } from './Grid.js';
+import { Tractor } from './Tractor.js';
+import { Spawner } from './Spawner.js';
+import { Collision } from './Collision.js';
+import { VimParser, COMMAND_TYPES } from '../input/VimParser.js?v=28';
+import { InputHandler } from '../input/InputHandler.js';
+import { Renderer } from '../render/Renderer.js?v=28';
+import { HUD } from '../render/HUD.js';
+import { Storage } from '../utils/Storage.js';
+import { soundEngine } from '../audio/SoundEngine.js';
+import { themeManager } from '../utils/ThemeManager.js';
 
 export class Game {
     constructor() {
@@ -24,6 +25,9 @@ export class Game {
         this.renderer = new Renderer('game-canvas');
         this.hud = new HUD();
         this.storage = new Storage();
+
+        // Canvas reference for viewport calculations
+        this.canvas = document.getElementById('game-canvas');
 
         // Game state
         this.state = GAME_STATES.NAME_INPUT;
@@ -49,6 +53,9 @@ export class Game {
         // Setup
         this.setupVimParser();
         this.hud.updateHighScore(this.highScore);
+
+        // Initialize theme manager
+        themeManager.init();
 
         // Sound engine (initialized on first user interaction)
         this.soundInitialized = false;
@@ -360,24 +367,58 @@ export class Game {
 
         switch (action) {
             case 'delete_line':
-                // dd - clear current row and collect points (requires 1 gas can)
-                if (this.tractor.getGasCans() >= 1) {
+                // dd - clear current row and collect points (requires 2 gas cans)
+                if (this.tractor.getGasCans() >= 2) {
                     soundEngine.playPowerup();
-                    const points = this.clearRowAndCollect(this.tractor.row);
-                    this.tractor.useGasCans(1);
-                    this.score += points;
+                    // Add smoke effect before clearing
+                    if (this.renderer.addRowSmokeEffect) {
+                        this.renderer.addRowSmokeEffect(this.tractor.row);
+                    }
+                    const results = this.clearRowAndCollect(this.tractor.row);
+                    this.tractor.useGasCans(2);
+                    this.score += results.points;
+                    // Add collected lives
+                    for (let i = 0; i < results.lives; i++) {
+                        this.tractor.addLife();
+                    }
+                    // Add collected gas cans
+                    for (let i = 0; i < results.gasCans; i++) {
+                        this.tractor.addGasCan();
+                    }
+                    // Play appropriate sounds
+                    if (results.points > 0) soundEngine.playCollect();
+                    if (results.lives > 0) soundEngine.playExtraLife();
+                    if (results.gasCans > 0) soundEngine.playGasCanCollect();
                     this.hud.updateScore(this.score);
+                    this.updateLivesDisplay();
                     this.updateGasCanDisplay();
                 }
                 break;
             case 'delete_all':
-                // dG - clear entire screen and collect all points (requires 2+ gas cans)
-                if (this.tractor.getGasCans() >= 2) {
+                // dG - clear entire screen and collect all points (requires 10 gas cans)
+                if (this.tractor.getGasCans() >= 10) {
                     soundEngine.playPowerup();
-                    const points = this.clearScreenAndCollect();
-                    this.tractor.useGasCans(2);
-                    this.score += points;
+                    // Add smoke effect for entire screen before clearing
+                    if (this.renderer.addScreenSmokeEffect) {
+                        this.renderer.addScreenSmokeEffect(this.getVisibleTopRow(), this.getVisibleBottomRow());
+                    }
+                    const results = this.clearScreenAndCollect();
+                    this.tractor.useGasCans(10);
+                    this.score += results.points;
+                    // Add collected lives
+                    for (let i = 0; i < results.lives; i++) {
+                        this.tractor.addLife();
+                    }
+                    // Add collected gas cans
+                    for (let i = 0; i < results.gasCans; i++) {
+                        this.tractor.addGasCan();
+                    }
+                    // Play appropriate sounds
+                    if (results.points > 0) soundEngine.playCollect();
+                    if (results.lives > 0) soundEngine.playExtraLife();
+                    if (results.gasCans > 0) soundEngine.playGasCanCollect();
                     this.hud.updateScore(this.score);
+                    this.updateLivesDisplay();
                     this.updateGasCanDisplay();
                 }
                 break;
@@ -408,38 +449,52 @@ export class Game {
         }
     }
 
-    // Clear a row and return total points collected
+    // Clear a row and return total points, lives, and gas cans collected
     clearRowAndCollect(row) {
         let points = 0;
+        let lives = 0;
+        let gasCans = 0;
         for (let col = 0; col < this.grid.cols; col++) {
             const cell = this.grid.getCell(col, row);
             if (cell) {
-                if (cell.points) {
+                if (cell.type === CELL_TYPES.ITEM && cell.points) {
                     points += cell.points;
+                } else if (cell.type === CELL_TYPES.LIFE) {
+                    lives++;
+                } else if (cell.type === CELL_TYPES.POWERUP) {
+                    gasCans++;
                 }
+                // Obstacles are just cleared without penalty (using gas to clear them)
                 this.grid.clearCell(col, row);
             }
         }
-        return points;
+        return { points, lives, gasCans };
     }
 
-    // Clear entire visible screen and return total points collected
+    // Clear entire visible screen and return total points, lives, and gas cans collected
     clearScreenAndCollect() {
         let points = 0;
+        let lives = 0;
+        let gasCans = 0;
         const startRow = this.getVisibleTopRow();
         const endRow = this.getVisibleBottomRow();
         for (let row = startRow; row <= endRow; row++) {
             for (let col = 0; col < this.grid.cols; col++) {
                 const cell = this.grid.getCell(col, row);
                 if (cell) {
-                    if (cell.points) {
+                    if (cell.type === CELL_TYPES.ITEM && cell.points) {
                         points += cell.points;
+                    } else if (cell.type === CELL_TYPES.LIFE) {
+                        lives++;
+                    } else if (cell.type === CELL_TYPES.POWERUP) {
+                        gasCans++;
                     }
+                    // Obstacles are just cleared without penalty (using gas to clear them)
                     this.grid.clearCell(col, row);
                 }
             }
         }
-        return points;
+        return { points, lives, gasCans };
     }
 
     // Collect items in a horizontal range (for word movements)
@@ -633,10 +688,20 @@ export class Game {
             case 'restart':
                 this.startGame();
                 break;
+            case 'drabda':
+                this.toggleDrabdaMode();
+                break;
             case 'unknown':
                 this.hud.showMessage(`Unknown command: ${command.raw}`);
                 break;
         }
+    }
+
+    toggleDrabdaMode() {
+        const isDrabda = themeManager.toggleDrabda();
+        const message = isDrabda ? 'Drabda Mode: ON' : 'Drabda Mode: OFF';
+        this.hud.showMessage(message, 1500);
+        this.hud.updateThemeToggle(isDrabda);
     }
 
     checkCollisions() {
@@ -747,7 +812,8 @@ export class Game {
             this.cameraY -= deltaTime * scrollSpeed;
 
             // Spawn new rows as camera reveals them (spawn ahead at TOP - lower row numbers)
-            const difficulty = 1 + this.gameTime / 30000;
+            // Difficulty synced with levels (60s each) for smoother progression
+            const difficulty = 1 + this.gameTime / 60000;
             const targetRow = this.getVisibleTopRow() - GRID_ROWS;
             while (this.lastSpawnedRow > targetRow) {
                 this.lastSpawnedRow--;
@@ -759,9 +825,11 @@ export class Game {
             this.grid.cleanupRowsAfter(cleanupRow);
         }
 
-        // Check if tractor touches bottom edge of screen (skip in debug mode)
+        // Check if tractor touches bottom edge of VISIBLE screen (skip in debug mode)
+        // Use visual position and the actual visible canvas height (accounts for browser viewport)
         const tractorScreenY = this.getTractorScreenY();
-        const bottomEdgeY = CANVAS_HEIGHT - CELL_SIZE;
+        const visibleHeight = this.getVisibleCanvasHeight();
+        const bottomEdgeY = visibleHeight - CELL_SIZE;  // Tractor top at this Y means bottom touches visible edge
         if (!this.debugMode && tractorScreenY >= bottomEdgeY) {
             // Tractor touched bottom edge - lose a life
             if (this.renderer.startShake) {
@@ -804,7 +872,39 @@ export class Game {
     }
 
     getTractorScreenY() {
-        return (this.tractor.row * CELL_SIZE) - this.cameraY;
+        // Use visualY for screen position check - matches what player sees
+        // visualY is in world coordinates (pixels), same as row * CELL_SIZE when not animating
+        return this.tractor.visualY - this.cameraY;
+    }
+
+    // Get the visible height of the canvas in the browser viewport
+    // This accounts for cases where the canvas extends beyond the visible window
+    getVisibleCanvasHeight() {
+        if (!this.canvas) return CANVAS_HEIGHT;
+
+        const rect = this.canvas.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+
+        // Canvas top relative to viewport
+        const canvasTop = rect.top;
+        // Canvas bottom relative to viewport
+        const canvasBottom = rect.bottom;
+
+        // If canvas is fully visible, use full height
+        if (canvasTop >= 0 && canvasBottom <= viewportHeight) {
+            return CANVAS_HEIGHT;
+        }
+
+        // If canvas extends below viewport, calculate visible portion
+        if (canvasBottom > viewportHeight) {
+            // How much of the canvas is cut off at the bottom
+            const cutoff = canvasBottom - viewportHeight;
+            // Scale from CSS pixels to canvas pixels (canvas might be scaled)
+            const scaleY = CANVAS_HEIGHT / rect.height;
+            return CANVAS_HEIGHT - (cutoff * scaleY);
+        }
+
+        return CANVAS_HEIGHT;
     }
 
     render(deltaTime) {
@@ -913,6 +1013,9 @@ export class Game {
     }
 
     start() {
+        // Setup viewport scaling for smaller screens
+        this.setupViewportScaling();
+
         // Check if player has a saved name
         if (this.playerName) {
             // Go directly to menu
@@ -932,6 +1035,39 @@ export class Game {
         // Start game loop
         this.lastTime = performance.now();
         this.animationFrame = requestAnimationFrame((t) => this.gameLoop(t));
+    }
+
+    setupViewportScaling() {
+        const container = document.getElementById('game-container');
+        if (!container) return;
+
+        // Required dimensions (from CSS variables)
+        const CONTAINER_HEIGHT = 1066; // canvas 960 + hud 50 + statusline 44 + padding 12
+        const CONTAINER_WIDTH = 656;   // canvas 576 + padding 80
+
+        const applyScale = () => {
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+
+            // Calculate scale factors for both dimensions
+            const scaleY = Math.min(1, (viewportHeight - 40) / CONTAINER_HEIGHT); // 40px margin
+            const scaleX = Math.min(1, (viewportWidth - 40) / CONTAINER_WIDTH);
+
+            // Use the smaller scale to maintain aspect ratio
+            const scale = Math.min(scaleX, scaleY);
+
+            if (scale < 1) {
+                container.style.transform = `scale(${scale})`;
+                container.style.transformOrigin = 'top center';
+            } else {
+                container.style.transform = '';
+                container.style.transformOrigin = '';
+            }
+        };
+
+        // Apply on load and resize
+        applyScale();
+        window.addEventListener('resize', applyScale);
     }
 
     // Start menu jingle when entering menu

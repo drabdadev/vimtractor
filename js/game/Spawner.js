@@ -2,7 +2,7 @@ import {
     GRID_COLS, GRID_ROWS, CELL_TYPES,
     OBSTACLE_SPAWN_RATE, ITEM_SPAWN_RATE, POWERUP_SPAWN_RATE,
     OBSTACLES, ITEMS, POWERUPS, LIFE_ITEM, PLAYER
-} from '../utils/Constants.js?v=10';
+} from '../utils/Constants.js';
 
 export class Spawner {
     constructor(grid) {
@@ -14,8 +14,8 @@ export class Spawner {
 
     // Spawn content for a new row
     spawnRow(row = 0, difficulty = 1) {
-        // Adjust spawn rates based on difficulty
-        const obstacleRate = Math.min(OBSTACLE_SPAWN_RATE * difficulty, 0.6);
+        // Adjust spawn rates based on difficulty (cap at 45% for playability)
+        const obstacleRate = Math.min(OBSTACLE_SPAWN_RATE * difficulty, 0.45);
         const itemRate = ITEM_SPAWN_RATE;
         const powerupRate = POWERUP_SPAWN_RATE;
 

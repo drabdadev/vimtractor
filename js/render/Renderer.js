@@ -1,7 +1,8 @@
 import {
     CANVAS_WIDTH, CANVAS_HEIGHT, CELL_SIZE,
-    GRID_COLS, GRID_ROWS, COLORS, ANIMATION, CELL_TYPES, PLAYER
-} from '../utils/Constants.js?v=10';
+    GRID_COLS, GRID_ROWS, ANIMATION, CELL_TYPES, PLAYER
+} from '../utils/Constants.js';
+import { themeManager } from '../utils/ThemeManager.js';
 
 export class Renderer {
     constructor(canvasId) {
@@ -26,6 +27,9 @@ export class Renderer {
 
         // Collection effect particles
         this.collectEffects = [];
+
+        // Smoke effects for dd/dG clear operations
+        this.smokeEffects = [];
     }
 
     clear() {
@@ -33,6 +37,7 @@ export class Renderer {
     }
 
     drawBackground(cameraY = 0) {
+        const colors = themeManager.getCanvasColors();
         // Draw checkerboard pattern based on camera position
         // Calculate which world rows are visible
         const startRow = Math.floor(cameraY / CELL_SIZE) - 1;
@@ -45,7 +50,7 @@ export class Renderer {
                 if (screenY >= -CELL_SIZE && screenY < CANVAS_HEIGHT + CELL_SIZE) {
                     // Draw normal field checkerboard
                     const isEven = (row + col) % 2 === 0;
-                    this.ctx.fillStyle = isEven ? COLORS.GRID_CELL_EVEN : COLORS.GRID_CELL_ODD;
+                    this.ctx.fillStyle = isEven ? colors.GRID_CELL_EVEN : colors.GRID_CELL_ODD;
                     this.ctx.fillRect(col * CELL_SIZE, screenY, CELL_SIZE, CELL_SIZE);
                 }
             }
@@ -53,12 +58,13 @@ export class Renderer {
     }
 
     drawStartingLine(startingRow, cameraY = 0) {
+        const colors = themeManager.getCanvasColors();
         // Simple line at the starting row (world coordinates)
         const screenY = (startingRow * CELL_SIZE) - cameraY;
 
         // Only draw if visible on screen
         if (screenY >= -CELL_SIZE && screenY <= CANVAS_HEIGHT) {
-            this.ctx.strokeStyle = COLORS.STARTING_LINE;
+            this.ctx.strokeStyle = colors.STARTING_LINE;
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
             this.ctx.moveTo(0, screenY);
@@ -68,7 +74,8 @@ export class Renderer {
     }
 
     drawGridLines(cameraY = 0) {
-        this.ctx.strokeStyle = COLORS.GRID_LINE;
+        const colors = themeManager.getCanvasColors();
+        this.ctx.strokeStyle = colors.GRID_LINE;
         this.ctx.lineWidth = 1;
 
         // Vertical lines (these don't move)
@@ -106,12 +113,13 @@ export class Renderer {
         const centerX = x + CELL_SIZE / 2;
         const centerY = yPixels + CELL_SIZE / 2;
 
-        // Draw green glow for life items (extra tractors)
+        // Draw glow for life items (extra tractors)
         if (cell.type === CELL_TYPES.LIFE) {
+            const colors = themeManager.getCanvasColors();
             this.ctx.save();
-            this.ctx.shadowColor = '#00ff88';
+            this.ctx.shadowColor = colors.LIFE_GLOW;
             this.ctx.shadowBlur = 12;
-            this.ctx.strokeStyle = '#00ff88';
+            this.ctx.strokeStyle = colors.LIFE_GLOW;
             this.ctx.lineWidth = 2;
             this.ctx.strokeRect(
                 x + 2,
@@ -145,6 +153,7 @@ export class Renderer {
     }
 
     drawTractor(tractor, cameraY = 0) {
+        const colors = themeManager.getCanvasColors();
         // Draw tractor at world position converted to screen position
         // Use visualX/visualY for smooth animation, then apply camera offset
         const screenX = tractor.visualX;
@@ -156,8 +165,8 @@ export class Renderer {
         this.ctx.font = `${CELL_SIZE * 0.8}px Arial`;
         this.ctx.fillText(tractor.emoji, centerX, centerY);
 
-        // Draw white border around tractor (more visible)
-        this.ctx.strokeStyle = '#ffffff';
+        // Draw border around tractor (more visible)
+        this.ctx.strokeStyle = colors.TRACTOR_BORDER;
         this.ctx.lineWidth = 3;
         this.ctx.strokeRect(
             screenX + 2,
@@ -295,9 +304,116 @@ export class Renderer {
         });
     }
 
+    // Add smoke effect at a single cell (used by dd/dG)
+    addSmokeEffect(col, row) {
+        this.smokeEffects.push({
+            col: col,
+            worldRow: row,
+            time: 0,
+            emoji: '💨',
+            offsetX: (Math.random() - 0.5) * 10,
+            offsetY: 0,
+            vy: -30 - Math.random() * 20, // Float upward
+            scale: 0.6 + Math.random() * 0.3,
+            delay: Math.random() * 0.1 // Stagger effect slightly
+        });
+    }
+
+    // Add smoke effects for an entire row (dd command)
+    addRowSmokeEffect(row) {
+        for (let col = 0; col < GRID_COLS; col++) {
+            // Stagger from center outward for nice wave effect
+            const centerCol = GRID_COLS / 2;
+            const distFromCenter = Math.abs(col - centerCol);
+            const delay = distFromCenter * 15; // 15ms per column from center
+
+            this.smokeEffects.push({
+                col: col,
+                worldRow: row,
+                time: -delay, // Negative time creates delay (in ms)
+                emoji: '💨',
+                offsetX: 0,
+                offsetY: 0,
+                vy: -40 - Math.random() * 20, // pixels per second
+                scale: 0.5 + Math.random() * 0.2,
+                delay: 0
+            });
+        }
+    }
+
+    // Add smoke effects for entire screen (dG command)
+    addScreenSmokeEffect(startRow, endRow) {
+        for (let row = startRow; row <= endRow; row++) {
+            for (let col = 0; col < GRID_COLS; col++) {
+                // Minimal wave effect - nearly instant (max ~80ms total)
+                const delay = (row - startRow) * 3 + col * 2; // ms
+
+                this.smokeEffects.push({
+                    col: col,
+                    worldRow: row,
+                    time: -delay, // Negative time creates delay (in ms)
+                    emoji: '💨',
+                    offsetX: 0,
+                    offsetY: 0,
+                    vy: -50 - Math.random() * 30, // pixels per second
+                    scale: 0.4 + Math.random() * 0.2,
+                    delay: 0
+                });
+            }
+        }
+    }
+
+    // Update smoke effects
+    updateSmokeEffects(deltaTime) {
+        const duration = 600; // 600ms effect duration
+        this.smokeEffects = this.smokeEffects.filter(smoke => {
+            smoke.time += deltaTime;
+
+            // Only animate if past delay
+            if (smoke.time > 0) {
+                // velocity is in pixels per second, deltaTime in ms
+                smoke.offsetY += smoke.vy * (deltaTime / 1000);
+                // Slow down as it rises
+                smoke.vy *= 0.98;
+                // Drift slightly sideways
+                smoke.offsetX += (Math.random() - 0.5) * 2;
+            }
+
+            return smoke.time < duration;
+        });
+    }
+
+    // Draw smoke effects
+    drawSmokeEffects(cameraY = 0) {
+        const duration = 600; // ms
+        this.smokeEffects.forEach(smoke => {
+            // Skip if still in delay period
+            if (smoke.time < 0) return;
+
+            const progress = smoke.time / duration;
+            // Fade in quickly then fade out
+            const fadeIn = Math.min(1, smoke.time / 100); // 100ms fade in
+            const fadeOut = 1 - Math.pow(progress, 2);
+            const alpha = fadeIn * fadeOut * 0.8;
+
+            // Scale up slightly as it dissipates
+            const scale = smoke.scale * (1 + progress * 0.3);
+
+            const screenX = smoke.col * CELL_SIZE + CELL_SIZE / 2 + smoke.offsetX;
+            const screenY = (smoke.worldRow * CELL_SIZE) - cameraY + CELL_SIZE / 2 + smoke.offsetY;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = alpha;
+            this.ctx.font = `${CELL_SIZE * scale}px Arial`;
+            this.ctx.fillText(smoke.emoji, screenX, screenY);
+            this.ctx.restore();
+        });
+    }
+
     // Draw a highlight on a cell (for movement preview, etc.)
-    highlightCell(col, row, color = 'rgba(255, 215, 0, 0.3)') {
-        this.ctx.fillStyle = color;
+    highlightCell(col, row, color = null) {
+        const colors = themeManager.getCanvasColors();
+        this.ctx.fillStyle = color || colors.HIGHLIGHT;
         this.ctx.fillRect(
             col * CELL_SIZE,
             row * CELL_SIZE,
@@ -307,18 +423,20 @@ export class Renderer {
     }
 
     // Flash effect for collision
-    flashScreen(color = 'rgba(233, 69, 96, 0.5)') {
-        this.ctx.fillStyle = color;
+    flashScreen(color = null) {
+        const colors = themeManager.getCanvasColors();
+        this.ctx.fillStyle = color || colors.FLASH_COLOR;
         this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     }
 
     // Draw score popup at position
-    drawScorePopup(col, row, text, color = '#ffd700') {
+    drawScorePopup(col, row, text, color = null) {
+        const colors = themeManager.getCanvasColors();
         const x = col * CELL_SIZE + CELL_SIZE / 2;
         const y = row * CELL_SIZE;
 
         this.ctx.font = 'bold 16px Arial';
-        this.ctx.fillStyle = color;
+        this.ctx.fillStyle = color || colors.SCORE_POPUP;
         this.ctx.fillText(text, x, y);
     }
 
@@ -328,6 +446,7 @@ export class Renderer {
         this.updateShake(deltaTime);
         this.updateExplosions(deltaTime);
         this.updateCollectEffects(deltaTime);
+        this.updateSmokeEffects(deltaTime);
 
         // Apply shake offset
         this.ctx.save();
@@ -343,6 +462,7 @@ export class Renderer {
         this.drawTractor(game.tractor, cameraY);  // Tractor in world coords
         this.drawExplosions(cameraY);
         this.drawCollectEffects(cameraY);
+        this.drawSmokeEffects(cameraY);
 
         this.ctx.restore();
     }
