@@ -22,7 +22,8 @@ export const CELL_TYPES = {
     OBSTACLE: 1,
     ITEM: 2,
     POWERUP: 3,
-    LIFE: 4
+    LIFE: 4,
+    SEED: 5         // Semi piantati dai comandi 'c' (change)
 };
 
 // Obstacle subtypes - rocks and stone structures are dangerous!
@@ -60,6 +61,20 @@ export const POWERUPS = {
 export const LIFE_ITEM = {
     emoji: '🚜',
     name: 'life'
+};
+
+// Seed item - planted by change commands (c)
+// NOTA: growthTime è definito in GameConfig.js
+export const SEED_ITEM = {
+    emoji: '🌱',
+    name: 'seed'
+};
+
+// Transmute items - created from rocks via 'r' command
+// NOTA: punti definiti in GameConfig.js
+export const TRANSMUTE_ITEMS = {
+    SNAIL: { emoji: '🐌', name: 'snail' },
+    MUSHROOM: { emoji: '🍄', name: 'mushroom' }
 };
 
 // Player settings

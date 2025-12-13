@@ -48,7 +48,39 @@ export class HUD {
         // Theme toggle
         this.themeToggle = document.getElementById('theme-toggle');
         this.drabdaMessage = document.getElementById('drabda-message');
+
+        // Vim infobar (Neovim-style permanent status line)
+        this.infobar = document.getElementById('vim-infobar');
+        this.infobarPlayer = document.getElementById('infobar-player');
+        this.infobarTime = document.getElementById('infobar-time');
+        this.infobarPosition = document.getElementById('infobar-position');
+
         this.setupThemeToggle();
+        this.setupHelpTabs();
+    }
+
+    setupHelpTabs() {
+        const tabs = document.querySelectorAll('.help-tab');
+        const contents = document.querySelectorAll('.help-tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+
+                // Update active tab
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Update active content
+                contents.forEach(content => {
+                    if (content.dataset.content === targetTab) {
+                        content.classList.add('active');
+                    } else {
+                        content.classList.remove('active');
+                    }
+                });
+            });
+        });
     }
 
     setupThemeToggle() {
@@ -405,6 +437,39 @@ export class HUD {
                 this.debugToggle.classList.remove('active');
                 this.debugToggle.title = 'Debug Mode: OFF - Click to pause scroll';
             }
+        }
+    }
+
+    // Infobar methods (Neovim-style permanent status line)
+    showInfobar(visible) {
+        if (this.infobar) {
+            if (visible) {
+                this.infobar.classList.add('visible');
+            } else {
+                this.infobar.classList.remove('visible');
+            }
+        }
+    }
+
+    updateInfobarPlayer(name) {
+        if (this.infobarPlayer) {
+            this.infobarPlayer.textContent = name || 'Player';
+        }
+    }
+
+    updateInfobarTime(elapsedMs) {
+        if (this.infobarTime) {
+            const totalSeconds = Math.floor(elapsedMs / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            this.infobarTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+    }
+
+    updateInfobarPosition(row, col) {
+        if (this.infobarPosition) {
+            // Format like Neovim: row:col (0-indexed internally, but show 1-indexed for users)
+            this.infobarPosition.textContent = `${row}:${col}`;
         }
     }
 }

@@ -33,6 +33,9 @@ export class Collision {
     }
 
     // Check for item pickup
+    // NOTE: Seeds are NOT auto-collected - they must grow first
+    // NOTE: Items (vegetables/coins/gems) are NOT auto-collected - use d/c commands
+    // NOTE: Powerups (gas cans) and Lives ARE auto-collected on walk
     checkPickup() {
         const { col, row } = this.tractor.getPosition();
         const cell = this.grid.getCell(col, row);
@@ -41,18 +44,19 @@ export class Collision {
             return null;
         }
 
-        if (cell.type === CELL_TYPES.ITEM) {
-            // Remove item from grid
-            this.grid.clearCell(col, row);
-            return {
-                type: 'item',
-                subtype: cell.subtype,
-                points: cell.points || 1
-            };
+        // Seeds cannot be picked up - they grow into vegetables
+        if (cell.type === CELL_TYPES.SEED) {
+            return null;
         }
 
+        // Items are NOT auto-collected anymore
+        // Players must use d/c commands (x, dw, de, db, dd, cw, ce, cb, cc)
+        if (cell.type === CELL_TYPES.ITEM) {
+            return null;
+        }
+
+        // Powerups (gas cans) ARE auto-collected
         if (cell.type === CELL_TYPES.POWERUP) {
-            // Remove powerup from grid
             this.grid.clearCell(col, row);
             return {
                 type: 'powerup',
@@ -61,8 +65,8 @@ export class Collision {
             };
         }
 
+        // Lives ARE auto-collected
         if (cell.type === CELL_TYPES.LIFE) {
-            // Remove life item from grid
             this.grid.clearCell(col, row);
             return {
                 type: 'life',

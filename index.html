@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=33">
+    <link rel="stylesheet" href="css/style.css?v=42">
 </head>
 <body>
     <div id="game-container">
@@ -76,54 +76,87 @@
                 <p class="leaderboard-hint">Press <kbd>Tab</kbd> for leaderboard</p>
             </div>
             <div id="help-screen" class="screen hidden">
-                <h1>Vim Commands</h1>
-                <div class="help-content">
-                    <div class="help-section">
-                        <h2>Basic Movement</h2>
-                        <div class="help-row"><kbd>h</kbd> <span>Move left</span></div>
-                        <div class="help-row"><kbd>j</kbd> <span>Move down</span></div>
-                        <div class="help-row"><kbd>k</kbd> <span>Move up</span></div>
-                        <div class="help-row"><kbd>l</kbd> <span>Move right</span></div>
-                    </div>
-                    <div class="help-section">
-                        <h2>Line Movement</h2>
-                        <div class="help-row"><kbd>0</kbd> <span>Go to first column</span></div>
-                        <div class="help-row"><kbd>$</kbd> <span>Go to last column</span></div>
-                    </div>
-                    <div class="help-section">
-                        <h2>Word Movement</h2>
-                        <div class="help-row"><kbd>w</kbd> <span>Next obstacle/item</span></div>
-                        <div class="help-row"><kbd>b</kbd> <span>Previous obstacle/item</span></div>
-                        <div class="help-row"><kbd>e</kbd> <span>End of next item</span></div>
-                        <div class="help-row"><kbd>ge</kbd> <span>End of previous item</span></div>
-                    </div>
-                    <div class="help-section">
-                        <h2>Screen Movement</h2>
-                        <div class="help-row"><kbd>gg</kbd> <span>Go to top (safe row)</span></div>
-                        <div class="help-row"><kbd>G</kbd> <span>Go to bottom (safe row)</span></div>
-                        <div class="help-row"><kbd>Ctrl+f</kbd> <span>Page down</span></div>
-                        <div class="help-row"><kbd>Ctrl+b</kbd> <span>Page up</span></div>
-                    </div>
-                    <div class="help-section">
-                        <h2>Count Prefix</h2>
-                        <div class="help-row"><kbd>5j</kbd> <span>Move down 5 times</span></div>
-                        <div class="help-row"><kbd>3l</kbd> <span>Move right 3 times</span></div>
-                        <p class="help-tip">Add any number before a movement!</p>
-                    </div>
-                    <div class="help-section">
-                        <h2>Actions (need gas cans ⛽)</h2>
-                        <div class="help-row"><kbd>dd</kbd> <span>Clear row, collect points</span> <span class="powerup-icon">2 gas cans</span></div>
-                        <div class="help-row"><kbd>dG</kbd> <span>Clear screen, collect all</span> <span class="powerup-icon">10 gas cans</span></div>
-                    </div>
-                    <div class="help-section">
-                        <h2>Command Mode</h2>
-                        <div class="help-row"><kbd>:</kbd> <span>Enter command mode</span></div>
-                        <div class="help-row"><kbd>:q</kbd> <span>Quit game</span></div>
-                        <div class="help-row"><kbd>:restart</kbd> <span>Restart game</span></div>
-                        <div class="help-row"><kbd>:drabda</kbd> <span>Toggle Drabda mode</span></div>
+                <div class="help-tabs">
+                    <button class="help-tab active" data-tab="commands">Commands</button>
+                    <button class="help-tab" data-tab="howtoplay">How to Play</button>
+                </div>
+
+                <div class="help-tab-content active" data-content="commands">
+                    <div class="help-content">
+                        <div class="help-section">
+                            <h3>Navigation (no collection)</h3>
+                            <div class="help-row"><kbd>h/j/k/l</kbd> <span>Move left/down/up/right</span></div>
+                            <div class="help-row"><kbd>w</kbd> <span>Jump to next word start</span></div>
+                            <div class="help-row"><kbd>b</kbd> <span>Jump to previous word start</span></div>
+                            <div class="help-row"><kbd>e</kbd> <span>Jump to word end</span></div>
+                            <div class="help-row"><kbd>ge</kbd> <span>Jump to previous word end</span></div>
+                            <div class="help-row"><kbd>0 / $</kbd> <span>Go to row start / end</span></div>
+                            <div class="help-row"><kbd>gg / G</kbd> <span>Go to screen top / bottom</span></div>
+                        </div>
+                        <div class="help-section">
+                            <h3>Delete = Collect</h3>
+                            <div class="help-row"><kbd>x</kbd> <span>Collect cell (Nx = N cells)</span> <span class="cost">free</span></div>
+                            <div class="help-row"><kbd>dw</kbd> <span>Collect to next word</span> <span class="cost">free</span></div>
+                            <div class="help-row"><kbd>de</kbd> <span>Collect to word end</span> <span class="cost">free</span></div>
+                            <div class="help-row"><kbd>db</kbd> <span>Collect backward to word</span> <span class="cost">free</span></div>
+                            <div class="help-row"><kbd>d0</kbd> <span>Collect to row start</span> <span class="cost">free</span></div>
+                            <div class="help-row"><kbd>d$</kbd> <span>Collect to row end</span> <span class="cost">free</span></div>
+                            <div class="help-row"><kbd>dd</kbd> <span>Collect entire row</span> <span class="cost">2 gas</span></div>
+                            <div class="help-row"><kbd>dG</kbd> <span>Collect entire screen</span> <span class="cost">10 gas (20%)</span></div>
+                        </div>
+                        <div class="help-section">
+                            <h3>Change = Collect + Plant Seeds</h3>
+                            <div class="help-row"><kbd>cw</kbd> <span>Collect + plant to next word</span> <span class="cost">free</span></div>
+                            <div class="help-row"><kbd>ce</kbd> <span>Collect + plant to word end</span> <span class="cost">free</span></div>
+                            <div class="help-row"><kbd>cb</kbd> <span>Collect + plant backward</span> <span class="cost">free</span></div>
+                            <div class="help-row"><kbd>cc</kbd> <span>Collect + plant entire row</span> <span class="cost">3 gas</span></div>
+                            <p class="help-tip">Seeds grow into vegetables after 3 seconds!</p>
+                        </div>
+                        <div class="help-section">
+                            <h3>Command Mode</h3>
+                            <div class="help-row"><kbd>:</kbd> <span>Enter command mode</span></div>
+                            <div class="help-row"><kbd>:q</kbd> <span>Quit game</span></div>
+                            <div class="help-row"><kbd>:restart</kbd> <span>Restart game</span></div>
+                        </div>
                     </div>
                 </div>
-                <p class="help-footer">Press <kbd>:q</kbd> or <kbd>Esc</kbd> to close</p>
+
+                <div class="help-tab-content" data-content="howtoplay">
+                    <div class="help-content tutorial">
+                        <div class="tutorial-section">
+                            <h3>Goal</h3>
+                            <p>Collect vegetables using Vim commands while avoiding rocks. The screen scrolls upward - don't fall off!</p>
+                        </div>
+                        <div class="tutorial-section">
+                            <h3>Movement vs Collection</h3>
+                            <p>In VimTractor, movement and collection are separate:</p>
+                            <ul>
+                                <li><strong>Movement (h/j/k/l/w/b)</strong> - navigate without collecting</li>
+                                <li><strong>Delete (x/dw/de/dd)</strong> - collect items for points</li>
+                                <li><strong>Change (cw/ce/cc)</strong> - collect AND plant seeds</li>
+                            </ul>
+                        </div>
+                        <div class="tutorial-section">
+                            <h3>Seeds</h3>
+                            <p>Use change commands to plant seeds. Seeds grow into vegetables after 3 seconds - come back later to collect them!</p>
+                        </div>
+                        <div class="tutorial-section">
+                            <h3>Gas Cans</h3>
+                            <p>Collect gas cans to power special moves:</p>
+                            <ul>
+                                <li><strong>dd</strong> - Clear entire row (2 gas)</li>
+                                <li><strong>cc</strong> - Clear row + plant seeds (3 gas)</li>
+                                <li><strong>dG</strong> - Clear screen (10 gas, 20% points)</li>
+                            </ul>
+                        </div>
+                        <div class="tutorial-section">
+                            <h3>Lives</h3>
+                            <p>You start with 3 lives. Lose one by hitting rocks or falling off screen. Collect extra tractors for more lives!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="help-footer">Press <kbd>?</kbd> or <kbd>Esc</kbd> to close</p>
             </div>
         </div>
         <div id="vim-statusline">
@@ -131,8 +164,18 @@
             <span id="command-line"><span id="command-prefix"></span><span id="command-buffer"></span><span id="cursor">_</span></span>
             <span id="statusline-hint">:help</span>
         </div>
+        <div id="vim-infobar">
+            <div class="infobar-left">
+                <span id="infobar-player">Player</span>
+                <span class="infobar-separator">│</span>
+                <span id="infobar-time">0:00</span>
+            </div>
+            <div class="infobar-right">
+                <span id="infobar-position">0:0</span>
+            </div>
+        </div>
     </div>
 
-    <script type="module" src="js/main.js?v=33"></script>
+    <script type="module" src="js/main.js?v=42"></script>
 </body>
 </html>

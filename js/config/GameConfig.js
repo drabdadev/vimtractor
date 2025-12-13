@@ -29,7 +29,7 @@ export const GameConfig = {
         obstacle: 0.18,         // Rocce - probabilità negli spazi vuoti (18%)
         item: 0.15,             // Oggetti collezionabili (0.15 = 15%)
         powerup: 0.05,          // Gas cans (0.05 = 5%)
-        life: 0.02,             // Vite extra / trattori (0.02 = 2%)
+        life: 0.002,             // Vite extra / trattori (0.002 = 0.2%)
         maxObstacleRate: 0.25,  // Cap massimo ostacoli con difficulty scaling
 
         // Word-based spawning - crea pattern testuali

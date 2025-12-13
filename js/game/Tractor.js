@@ -31,6 +31,10 @@ export class Tractor {
         // Position history for undo
         this.positionHistory = [];
         this.maxHistoryLength = 60; // ~1 second at 60fps
+
+        // Return position for forward delete commands (de/dw)
+        // After animation completes, tractor teleports back here
+        this.returnPosition = null;
     }
 
     // Start animation to new position
@@ -64,6 +68,17 @@ export class Tractor {
             this.isAnimating = false;
             this.visualX = this.targetX;
             this.visualY = this.targetY;
+
+            // Check for return position (teleport back after forward delete)
+            if (this.returnPosition) {
+                this.col = this.returnPosition.col;
+                this.row = this.returnPosition.row;
+                this.visualX = this.col * CELL_SIZE;
+                this.visualY = this.row * CELL_SIZE;
+                this.targetX = this.visualX;
+                this.targetY = this.visualY;
+                this.returnPosition = null;
+            }
         } else {
             // Ease-out interpolation
             const t = 1 - Math.pow(1 - this.animationProgress, 2);
@@ -139,6 +154,19 @@ export class Tractor {
         return false;
     }
 
+    // Set position with return: animate to target, then teleport back
+    // Used for forward delete commands (de/dw) to show animation but keep Vim cursor behavior
+    setPositionWithReturn(targetCol, targetRow, returnCol, returnRow) {
+        if (targetCol >= 0 && targetCol < GRID_COLS) {
+            this.returnPosition = { col: returnCol, row: returnRow };
+            this.col = targetCol;
+            this.row = targetRow;
+            this.startAnimation();
+            return true;
+        }
+        return false;
+    }
+
     // Record current position for undo
     recordPosition() {
         this.positionHistory.push({ col: this.col, row: this.row });
@@ -202,6 +230,7 @@ export class Tractor {
         this.lives = GameConfig.player.startingLives;
         this.gasCans = GameConfig.player.startingGasCans;
         this.positionHistory = [];
+        this.returnPosition = null;
         this.isDead = false;
         this.emoji = this.normalEmoji;
     }

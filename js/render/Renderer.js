@@ -31,6 +31,15 @@ export class Renderer {
 
         // Smoke effects for dd/dG clear operations
         this.smokeEffects = [];
+
+        // Score popup effects (+2, +3, etc.)
+        this.scorePopups = [];
+
+        // Flying vegetable effects (emoji rises and fades)
+        this.flyingVegetables = [];
+
+        // Rock transmutation effect state
+        this.transmuteEffect = null; // { col, row, progress }
     }
 
     clear() {
@@ -114,6 +123,32 @@ export class Renderer {
         const centerX = x + CELL_SIZE / 2;
         const centerY = yPixels + CELL_SIZE / 2;
 
+        // Special rendering for seeds (pulsing animation)
+        if (cell.type === CELL_TYPES.SEED) {
+            const age = Date.now() - (cell.plantedAt || Date.now());
+            const growthProgress = Math.min(age / cell.growthTime, 1);
+
+            // Pulsing effect as seed grows (faster pulse as it gets closer to growing)
+            const pulseSpeed = 200 + (1 - growthProgress) * 300; // Faster near end
+            const pulse = Math.sin(age / pulseSpeed) * 0.1;
+
+            // Seed grows larger as it approaches growth time
+            const baseScale = 0.5 + growthProgress * 0.3;
+            const scale = baseScale + pulse;
+
+            // Draw seed with glow when close to growing
+            if (growthProgress > 0.7) {
+                this.ctx.save();
+                this.ctx.shadowColor = '#00ff88';
+                this.ctx.shadowBlur = 8 + (growthProgress - 0.7) * 20;
+                this.drawEmojiAt(cell.emoji, centerX, centerY, CELL_SIZE * scale);
+                this.ctx.restore();
+            } else {
+                this.drawEmojiAt(cell.emoji, centerX, centerY, CELL_SIZE * scale);
+            }
+            return;
+        }
+
         // Draw glow for life items (extra tractors)
         if (cell.type === CELL_TYPES.LIFE) {
             const colors = themeManager.getCanvasColors();
@@ -153,12 +188,19 @@ export class Renderer {
         }
     }
 
-    drawTractor(tractor, cameraY = 0) {
+    drawTractor(tractor, cameraY = 0, isTransmuting = false) {
         const colors = themeManager.getCanvasColors();
         // Draw tractor at world position converted to screen position
         // Use visualX/visualY for smooth animation, then apply camera offset
-        const screenX = tractor.visualX;
-        const screenY = tractor.visualY - cameraY;
+        let screenX = tractor.visualX;
+        let screenY = tractor.visualY - cameraY;
+
+        // Add vibration effect during transmutation
+        if (isTransmuting) {
+            const vibration = 3; // pixels
+            screenX += (Math.random() - 0.5) * vibration * 2;
+            screenY += (Math.random() - 0.5) * vibration * 2;
+        }
 
         const centerX = screenX + CELL_SIZE / 2;
         const centerY = screenY + CELL_SIZE / 2;
@@ -272,6 +314,38 @@ export class Renderer {
         });
     }
 
+    // Add growth effect when seed becomes vegetable
+    addGrowthEffect(col, row) {
+        // Sparkle burst effect
+        const particleCount = 5;
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (i / particleCount) * Math.PI * 2;
+            this.collectEffects.push({
+                col: col,
+                worldRow: row,
+                time: 0,
+                emoji: '✨',
+                vx: Math.cos(angle) * 40,
+                vy: Math.sin(angle) * 40 - 20,
+                offsetX: 0,
+                offsetY: 0,
+                scale: 0.4 + Math.random() * 0.2
+            });
+        }
+        // Center green glow burst
+        this.collectEffects.push({
+            col: col,
+            worldRow: row,
+            time: 0,
+            emoji: '🌟',
+            vx: 0,
+            vy: -15,
+            offsetX: 0,
+            offsetY: 0,
+            scale: 0.6
+        });
+    }
+
     // Update collection effects
     updateCollectEffects(deltaTime) {
         const duration = GameConfig.animation.collectEffectDuration / 1000; // Convert ms to seconds
@@ -306,18 +380,23 @@ export class Renderer {
     }
 
     // Add smoke effect at a single cell (used by dd/dG)
-    addSmokeEffect(col, row) {
-        this.smokeEffects.push({
-            col: col,
-            worldRow: row,
-            time: 0,
-            emoji: '💨',
-            offsetX: (Math.random() - 0.5) * 10,
-            offsetY: 0,
-            vy: -30 - Math.random() * 20, // Float upward
-            scale: 0.6 + Math.random() * 0.3,
-            delay: Math.random() * 0.1 // Stagger effect slightly
-        });
+    addSmokeEffect(col, row, isRed = false) {
+        // Add multiple smoke particles for a fuller effect
+        const particleCount = isRed ? 5 : 3;
+        for (let i = 0; i < particleCount; i++) {
+            this.smokeEffects.push({
+                col: col,
+                worldRow: row,
+                time: -i * 30, // Stagger particles
+                emoji: '💨',
+                offsetX: (Math.random() - 0.5) * 15,
+                offsetY: 0,
+                vy: -35 - Math.random() * 25, // Float upward
+                scale: 0.5 + Math.random() * 0.3,
+                delay: 0,
+                isRed: isRed // Flag for red tint
+            });
+        }
     }
 
     // Add smoke effects for an entire row (dd command)
@@ -405,10 +484,186 @@ export class Renderer {
 
             this.ctx.save();
             this.ctx.globalAlpha = alpha;
+
+            // Apply red tint for moai smoke
+            if (smoke.isRed) {
+                this.ctx.filter = 'hue-rotate(-50deg) saturate(3)';
+            }
+
             this.ctx.font = `${CELL_SIZE * scale}px Arial`;
             this.ctx.fillText(smoke.emoji, screenX, screenY);
             this.ctx.restore();
         });
+    }
+
+    // Add score popup (+2, +3, -50, etc.) that floats upward
+    addScorePopup(col, row, points) {
+        // Format text: negative values show as "-50", positive as "+2"
+        const text = points >= 0 ? `+${points}` : `${points}`;
+        const isNegative = points < 0;
+
+        this.scorePopups.push({
+            col: col,
+            worldRow: row,
+            time: 0,
+            text: text,
+            offsetY: 0,
+            vy: -80, // pixels per second upward
+            scale: 1,
+            isNegative: isNegative
+        });
+    }
+
+    // Update score popups
+    updateScorePopups(deltaTime) {
+        const duration = 800; // ms duration
+        this.scorePopups = this.scorePopups.filter(popup => {
+            popup.time += deltaTime;
+            popup.offsetY += popup.vy * (deltaTime / 1000);
+            // Slow down as it rises
+            popup.vy *= 0.97;
+            return popup.time < duration;
+        });
+    }
+
+    // Draw score popups
+    drawScorePopups(cameraY = 0) {
+        const colors = themeManager.getCanvasColors();
+        const duration = 800;
+        this.scorePopups.forEach(popup => {
+            const progress = popup.time / duration;
+            // Fade out in the last half
+            const alpha = progress < 0.5 ? 1 : 1 - (progress - 0.5) * 2;
+            // Scale up slightly at start, then shrink
+            const scale = progress < 0.2 ? 1 + progress * 1.5 : 1.3 - progress * 0.5;
+
+            const screenX = popup.col * CELL_SIZE + CELL_SIZE / 2;
+            const screenY = (popup.worldRow * CELL_SIZE) - cameraY + CELL_SIZE / 2 + popup.offsetY;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = alpha;
+            this.ctx.font = `bold ${14 * scale}px Arial`;
+            // Use red for negative values, gold for positive
+            this.ctx.fillStyle = popup.isNegative ? '#FF4444' : (colors.SCORE_POPUP || '#FFD700');
+            this.ctx.strokeStyle = '#000';
+            this.ctx.lineWidth = 2;
+            // Draw text with outline for visibility
+            this.ctx.strokeText(popup.text, screenX, screenY);
+            this.ctx.fillText(popup.text, screenX, screenY);
+            this.ctx.restore();
+        });
+    }
+
+    // Add flying vegetable effect (emoji rises and fades)
+    addFlyingVegetable(col, row, emoji) {
+        // Random angle slightly upward
+        const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.8;
+        const speed = 120 + Math.random() * 60; // pixels per second
+
+        this.flyingVegetables.push({
+            col: col,
+            worldRow: row,
+            time: 0,
+            emoji: emoji,
+            offsetX: 0,
+            offsetY: 0,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            rotation: 0,
+            rotationSpeed: (Math.random() - 0.5) * 8, // radians per second
+            scale: 0.7
+        });
+    }
+
+    // Update flying vegetables
+    updateFlyingVegetables(deltaTime) {
+        const duration = 600; // ms
+        this.flyingVegetables = this.flyingVegetables.filter(veg => {
+            veg.time += deltaTime;
+            veg.offsetX += veg.vx * (deltaTime / 1000);
+            veg.offsetY += veg.vy * (deltaTime / 1000);
+            // Add gravity
+            veg.vy += 200 * (deltaTime / 1000);
+            // Rotation
+            veg.rotation += veg.rotationSpeed * (deltaTime / 1000);
+            return veg.time < duration;
+        });
+    }
+
+    // Draw flying vegetables
+    drawFlyingVegetables(cameraY = 0) {
+        const duration = 600;
+        this.flyingVegetables.forEach(veg => {
+            const progress = veg.time / duration;
+            // Fade out
+            const alpha = 1 - progress;
+            // Shrink as it flies
+            const scale = veg.scale * (1 - progress * 0.5);
+
+            const screenX = veg.col * CELL_SIZE + CELL_SIZE / 2 + veg.offsetX;
+            const screenY = (veg.worldRow * CELL_SIZE) - cameraY + CELL_SIZE / 2 + veg.offsetY;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = alpha;
+            this.ctx.translate(screenX, screenY);
+            this.ctx.rotate(veg.rotation);
+            this.ctx.font = `${CELL_SIZE * scale}px Arial`;
+            this.ctx.fillText(veg.emoji, 0, 0);
+            this.ctx.restore();
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ROCK TRANSMUTATION EFFECTS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Start transmutation effect on a rock
+    startTransmuteEffect(col, row) {
+        this.transmuteEffect = { col, row, startTime: Date.now() };
+    }
+
+    // Stop transmutation effect
+    stopTransmuteEffect() {
+        this.transmuteEffect = null;
+    }
+
+    // Draw transmutation progress circle on target rock
+    drawTransmuteProgress(cameraY, progress) {
+        if (!this.transmuteEffect) return;
+
+        const { col, row } = this.transmuteEffect;
+        const x = col * CELL_SIZE + CELL_SIZE / 2;
+        const y = (row * CELL_SIZE) - cameraY + CELL_SIZE / 2;
+
+        // Draw background circle
+        this.ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        this.ctx.lineWidth = 4;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y - CELL_SIZE * 0.6, 10, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        // Draw progress arc (green)
+        this.ctx.strokeStyle = '#00ff88';
+        this.ctx.lineWidth = 4;
+        this.ctx.lineCap = 'round';
+        this.ctx.beginPath();
+        this.ctx.arc(x, y - CELL_SIZE * 0.6, 10, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+        this.ctx.stroke();
+
+        // Draw pulsing glow on the rock
+        const pulse = Math.sin(Date.now() / 100) * 0.15 + 0.85;
+        this.ctx.save();
+        this.ctx.shadowColor = '#00ff88';
+        this.ctx.shadowBlur = 15 * pulse;
+        this.ctx.strokeStyle = `rgba(0, 255, 136, ${0.5 * pulse})`;
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(
+            col * CELL_SIZE + 2,
+            (row * CELL_SIZE) - cameraY + 2,
+            CELL_SIZE - 4,
+            CELL_SIZE - 4
+        );
+        this.ctx.restore();
     }
 
     // Draw a highlight on a cell (for movement preview, etc.)
@@ -448,6 +703,8 @@ export class Renderer {
         this.updateExplosions(deltaTime);
         this.updateCollectEffects(deltaTime);
         this.updateSmokeEffects(deltaTime);
+        this.updateScorePopups(deltaTime);
+        this.updateFlyingVegetables(deltaTime);
 
         // Apply shake offset
         this.ctx.save();
@@ -460,10 +717,13 @@ export class Renderer {
         this.drawGridLines(cameraY);
         this.drawStartingLine(startingRow, cameraY);  // Starting line scrolls with world
         this.drawGrid(game.grid, cameraY);
-        this.drawTractor(game.tractor, cameraY);  // Tractor in world coords
+        this.drawTractor(game.tractor, cameraY, game.isTransmuting);  // Pass transmutation state
         this.drawExplosions(cameraY);
         this.drawCollectEffects(cameraY);
         this.drawSmokeEffects(cameraY);
+        this.drawFlyingVegetables(cameraY);
+        this.drawScorePopups(cameraY);
+
 
         this.ctx.restore();
     }

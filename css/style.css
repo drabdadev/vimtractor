@@ -91,6 +91,10 @@ body.theme-drabda #vim-statusline {
     font-size: 10px;
 }
 
+body.theme-drabda #vim-infobar {
+    font-size: 8px;
+}
+
 body.theme-drabda .command-label {
     font-size: 9px;
 }
@@ -117,6 +121,32 @@ body.theme-drabda .leaderboard-name {
 
 body.theme-drabda .leaderboard-score {
     font-size: 12px;
+}
+
+body.theme-drabda .help-tab {
+    font-size: 8px;
+    padding: 6px 12px;
+}
+
+body.theme-drabda .help-section h3 {
+    font-size: 9px;
+}
+
+body.theme-drabda .tutorial-section h3 {
+    font-size: 10px;
+}
+
+body.theme-drabda .tutorial-section p,
+body.theme-drabda .tutorial-section li {
+    font-size: 9px;
+}
+
+body.theme-drabda .help-tip {
+    font-size: 8px;
+}
+
+body.theme-drabda .help-row .cost {
+    font-size: 8px;
 }
 
 * {
@@ -276,6 +306,57 @@ body {
 #statusline-hint {
     color: var(--text-dim);
     font-size: 12px;
+}
+
+/* Vim Infobar - Neovim-style permanent status line */
+#vim-infobar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 12px;
+    background-color: var(--bg-tertiary);
+    border-top: 1px solid var(--border-secondary);
+    font-family: var(--font-primary);
+    font-size: 11px;
+    color: var(--text-dim);
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#vim-infobar.visible {
+    opacity: 1;
+}
+
+.infobar-left,
+.infobar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.infobar-separator {
+    color: var(--border-secondary);
+    opacity: 0.5;
+}
+
+#infobar-player {
+    color: var(--accent-primary);
+    font-weight: bold;
+}
+
+#infobar-time {
+    color: var(--text-dim);
+}
+
+#infobar-position {
+    color: var(--text-secondary);
+    font-weight: bold;
+    font-family: var(--font-primary);
 }
 
 /* Level Indicator */
@@ -627,6 +708,118 @@ body {
     border-radius: 4px;
     color: var(--kbd-text-alt);
     font-size: 12px;
+}
+
+/* Help tabs */
+.help-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.help-tab {
+    background: var(--border-translucent);
+    border: 1px solid var(--border-secondary);
+    border-radius: 6px 6px 0 0;
+    color: var(--text-muted);
+    font-family: var(--font-primary);
+    font-size: 12px;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.help-tab:hover {
+    color: var(--text-primary);
+    border-color: var(--accent-primary);
+}
+
+.help-tab.active {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border-color: var(--accent-primary);
+}
+
+.help-tab-content {
+    display: none;
+}
+
+.help-tab-content.active {
+    display: block;
+}
+
+/* Help section h3 (used in new tab structure) */
+.help-section h3 {
+    font-size: 13px;
+    color: var(--accent-primary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Cost indicator for gas-powered commands */
+.help-row .cost {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--accent-tertiary);
+    font-style: italic;
+}
+
+/* Tutorial content in How to Play tab */
+.help-content.tutorial {
+    display: block;
+    max-width: 500px;
+}
+
+.tutorial-section {
+    background-color: var(--border-translucent);
+    padding: 15px 20px;
+    border-radius: 6px;
+    border-left: 3px solid var(--accent-secondary);
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.tutorial-section h3 {
+    font-size: 14px;
+    color: var(--accent-secondary);
+    margin-bottom: 10px;
+}
+
+.tutorial-section p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.tutorial-section p:last-child {
+    margin-bottom: 0;
+}
+
+.tutorial-section ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.tutorial-section li {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 6px 0;
+    padding-left: 15px;
+    position: relative;
+}
+
+.tutorial-section li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--accent-secondary);
+}
+
+.tutorial-section strong {
+    color: var(--kbd-text);
 }
 
 /* Scrollbar for help screen */

@@ -892,6 +892,166 @@ export class SoundEngine {
     }
 
     /**
+     * Transmutation working sound - drilling/digging loop
+     * Returns a stop function to end the sound
+     */
+    playTransmuteWork() {
+        if (!this.initialized) return () => {};
+
+        const now = this.audioContext.currentTime;
+        const duration = 2.5; // Slightly longer than transmutation for safety
+
+        // Create drilling/working sound - rhythmic grinding
+        const osc1 = this.audioContext.createOscillator();
+        const osc2 = this.audioContext.createOscillator();
+        const lfo = this.audioContext.createOscillator();
+        const lfoGain = this.audioContext.createGain();
+        const mainGain = this.audioContext.createGain();
+        const filter = this.audioContext.createBiquadFilter();
+
+        // LFO for rhythmic pulsing (like a jackhammer)
+        lfo.type = 'square';
+        lfo.frequency.value = 12; // 12 Hz pulse
+        lfoGain.gain.value = 30;
+        lfo.connect(lfoGain);
+
+        // Main oscillators - low grinding sound
+        osc1.type = 'sawtooth';
+        osc1.frequency.value = 80;
+        lfoGain.connect(osc1.frequency); // Modulate pitch
+
+        osc2.type = 'square';
+        osc2.frequency.value = 120;
+
+        // Low pass filter for rumble
+        filter.type = 'lowpass';
+        filter.frequency.value = 400;
+        filter.Q.value = 2;
+
+        // Envelope - fade in and sustain
+        mainGain.gain.setValueAtTime(0, now);
+        mainGain.gain.linearRampToValueAtTime(0.25 * this.sfxVolume, now + 0.1);
+        mainGain.gain.setValueAtTime(0.2 * this.sfxVolume, now + duration - 0.2);
+        mainGain.gain.linearRampToValueAtTime(0, now + duration);
+
+        // Connect
+        const mixer = this.audioContext.createGain();
+        mixer.gain.value = 0.5;
+
+        osc1.connect(filter);
+        osc2.connect(mixer);
+        mixer.connect(filter);
+        filter.connect(mainGain);
+        mainGain.connect(this.masterGain);
+
+        // Start
+        lfo.start(now);
+        osc1.start(now);
+        osc2.start(now);
+        lfo.stop(now + duration);
+        osc1.stop(now + duration);
+        osc2.stop(now + duration);
+
+        // Cleanup
+        osc1.onended = () => {
+            mainGain.disconnect();
+            filter.disconnect();
+            mixer.disconnect();
+            lfoGain.disconnect();
+            this.activeSounds.delete(osc1);
+            this.activeSounds.delete(osc2);
+            this.activeSounds.delete(lfo);
+        };
+
+        this.activeSounds.add(osc1);
+        this.activeSounds.add(osc2);
+        this.activeSounds.add(lfo);
+
+        // Return stop function for early termination
+        return () => {
+            try {
+                mainGain.gain.cancelScheduledValues(this.audioContext.currentTime);
+                mainGain.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.05);
+                setTimeout(() => {
+                    try {
+                        lfo.stop();
+                        osc1.stop();
+                        osc2.stop();
+                    } catch (e) { /* ignore */ }
+                }, 60);
+            } catch (e) { /* ignore */ }
+        };
+    }
+
+    /**
+     * Penalty sound - point loss buzzer (like wrong answer)
+     */
+    playPenalty() {
+        if (!this.initialized) return;
+
+        const now = this.audioContext.currentTime;
+
+        // Descending dissonant buzz - classic "wrong" sound
+        const osc1 = this.audioContext.createOscillator();
+        const osc2 = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+
+        osc1.type = 'square';
+        osc2.type = 'sawtooth';
+
+        // Descending, slightly detuned for dissonance
+        osc1.frequency.setValueAtTime(400, now);
+        osc1.frequency.exponentialRampToValueAtTime(150, now + 0.25);
+
+        osc2.frequency.setValueAtTime(410, now); // Slight detune for buzz
+        osc2.frequency.exponentialRampToValueAtTime(145, now + 0.25);
+
+        // Sharp attack, sustain, then fade
+        gain.gain.setValueAtTime(0.5 * this.sfxVolume, now);
+        gain.gain.setValueAtTime(0.45 * this.sfxVolume, now + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+        const mixer = this.audioContext.createGain();
+        mixer.gain.value = 0.7;
+
+        osc1.connect(mixer);
+        osc2.connect(mixer);
+        mixer.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.3);
+        osc2.stop(now + 0.3);
+
+        // Add rumble undertone
+        const rumble = this.audioContext.createOscillator();
+        const rumbleGain = this.audioContext.createGain();
+        rumble.type = 'sine';
+        rumble.frequency.value = 60;
+        rumbleGain.gain.setValueAtTime(0.3 * this.sfxVolume, now);
+        rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        rumble.connect(rumbleGain);
+        rumbleGain.connect(this.masterGain);
+        rumble.start(now);
+        rumble.stop(now + 0.25);
+
+        osc1.onended = () => {
+            gain.disconnect();
+            mixer.disconnect();
+            this.activeSounds.delete(osc1);
+            this.activeSounds.delete(osc2);
+        };
+        rumble.onended = () => {
+            rumbleGain.disconnect();
+            this.activeSounds.delete(rumble);
+        };
+        this.activeSounds.add(osc1);
+        this.activeSounds.add(osc2);
+        this.activeSounds.add(rumble);
+    }
+
+    /**
      * Sad death screen music - melancholic minor melody
      */
     playDeathMusic() {
