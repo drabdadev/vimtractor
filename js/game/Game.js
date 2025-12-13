@@ -1,18 +1,18 @@
 import {
-    GAME_STATES, GRID_ROWS, CELL_TYPES, CELL_SIZE, PLAYER, CANVAS_HEIGHT
-} from '../utils/Constants.js?v=32';
-import { GameConfig } from '../config/GameConfig.js?v=32';
+    GAME_STATES, GRID_ROWS, CELL_TYPES, CELL_SIZE, PLAYER, CANVAS_HEIGHT, SEED_ITEM
+} from '../utils/Constants.js?v=42';
+import { GameConfig } from '../config/GameConfig.js?v=42';
 import { Grid } from './Grid.js';
-import { Tractor } from './Tractor.js?v=32';
-import { Spawner } from './Spawner.js?v=32';
+import { Tractor } from './Tractor.js?v=42';
+import { Spawner } from './Spawner.js?v=42';
 import { Collision } from './Collision.js';
-import { VimParser, COMMAND_TYPES } from '../input/VimParser.js?v=32';
+import { VimParser, COMMAND_TYPES } from '../input/VimParser.js?v=42';
 import { InputHandler } from '../input/InputHandler.js';
-import { Renderer } from '../render/Renderer.js?v=32';
-import { HUD } from '../render/HUD.js?v=32';
+import { Renderer } from '../render/Renderer.js?v=42';
+import { HUD } from '../render/HUD.js?v=42';
 import { Storage } from '../utils/Storage.js';
 import { soundEngine } from '../audio/SoundEngine.js';
-import { themeManager } from '../utils/ThemeManager.js?v=32';
+import { themeManager } from '../utils/ThemeManager.js?v=42';
 
 export class Game {
     constructor() {
@@ -50,6 +50,13 @@ export class Game {
         // Animation frame
         this.lastTime = 0;
         this.animationFrame = null;
+
+        // Rock transmutation state
+        this.isTransmuting = false;
+        this.transmuteTarget = null;  // { col, row, subtype }
+        this.transmuteStartTime = 0;
+        this.transmuteProgress = 0;
+        this.stopTransmuteSound = null;  // Function to stop transmute sound
 
         // Setup
         this.setupVimParser();
@@ -219,6 +226,9 @@ export class Game {
     }
 
     handleMove(command) {
+        // Block movement during transmutation
+        if (this.isTransmuting) return;
+
         const { direction, count } = command;
         let moved = false;
 
@@ -251,16 +261,16 @@ export class Game {
                 }
                 break;
             case 'file_end':
-                // G - find safe row at bottom of visible area
+                // G - find safe row at bottom of navigable area (standard grid)
                 const visTop = this.getVisibleTopRow();
-                const visBottom = this.getVisibleBottomRow();
-                const bottomRow = this.grid.findSafeRowInRange(this.tractor.col, visTop, visBottom, false);
+                const navBottom = this.getNavigableBottomRow();
+                const bottomRow = this.grid.findSafeRowInRange(this.tractor.col, visTop, navBottom, false);
                 if (bottomRow !== null) {
                     moved = this.tractor.setPosition(this.tractor.col, bottomRow);
                 }
                 break;
             case 'word_next': {
-                // w - move to START of next word (Vim behavior)
+                // w - move to START of next word (navigation only, no collection)
                 const startCol = this.tractor.col;
                 const row = this.tractor.row;
 
@@ -274,38 +284,32 @@ export class Game {
                 }
 
                 if (targetWord) {
-                    // Move to START of the word
-                    const targetCol = targetWord.start;
-                    this.collectItemsInRange(startCol + 1, targetCol - 1, row);
-                    moved = this.tractor.setPosition(targetCol, row);
+                    // Move to START of the word (no collection)
+                    moved = this.tractor.setPosition(targetWord.start, row);
                 } else {
-                    // No word found, go to end of row
-                    this.collectItemsInRange(startCol + 1, this.grid.cols - 1, row);
+                    // No word found, go to end of row (no collection)
                     moved = this.tractor.setPosition(this.grid.cols - 1, row);
                 }
                 break;
             }
             case 'word_prev': {
-                // b - move to START of previous word (Vim behavior)
+                // b - move to START of previous word (navigation only, no collection)
                 const startColB = this.tractor.col;
                 const row = this.tractor.row;
 
                 const prevWord = this.grid.findPrevWord(startColB, row);
 
                 if (prevWord) {
-                    // Move to START of the previous word
-                    const targetCol = prevWord.start;
-                    this.collectItemsInRange(targetCol + 1, startColB - 1, row);
-                    moved = this.tractor.setPosition(targetCol, row);
+                    // Move to START of the previous word (no collection)
+                    moved = this.tractor.setPosition(prevWord.start, row);
                 } else {
-                    // No word found, go to start of row
-                    this.collectItemsInRange(0, startColB - 1, row);
+                    // No word found, go to start of row (no collection)
                     moved = this.tractor.setPosition(0, row);
                 }
                 break;
             }
             case 'word_end': {
-                // e - move to END of current word, or END of next word if at end (Vim behavior)
+                // e - move to END of current word (navigation only, no collection)
                 const startColE = this.tractor.col;
                 const row = this.tractor.row;
 
@@ -324,25 +328,21 @@ export class Game {
                 }
 
                 if (targetCol !== undefined) {
-                    // Collect items along the path (including destination)
-                    this.collectItemsInRange(startColE + 1, targetCol, row);
+                    // Move to end of word (no collection)
                     moved = this.tractor.setPosition(targetCol, row);
                 }
                 break;
             }
             case 'word_end_prev': {
-                // ge - move to END of previous word (Vim behavior)
+                // ge - move to END of previous word (navigation only, no collection)
                 const startCol = this.tractor.col;
                 const row = this.tractor.row;
 
                 // Find previous word
                 const prevWord = this.grid.findPrevWord(startCol, row);
                 if (prevWord) {
-                    // Go to end of previous word
-                    const targetCol = prevWord.end;
-                    // Collect items along the path (going left)
-                    this.collectItemsInRange(targetCol, startCol - 1, row);
-                    moved = this.tractor.setPosition(targetCol, row);
+                    // Go to end of previous word (no collection)
+                    moved = this.tractor.setPosition(prevWord.end, row);
                 }
                 break;
             }
@@ -354,6 +354,52 @@ export class Game {
                 // Ctrl+b - move up by half the screen
                 moved = this.tractor.moveUp(Math.floor(GRID_ROWS / 2));
                 break;
+            case 'find_right': {
+                // f{char} - find object to the right, go ON it
+                const { targetType } = command;
+                const targetCol = this.grid.findObjectOnRow(this.tractor.col, this.tractor.row, 1, targetType);
+                if (targetCol !== null) {
+                    // For obstacles, stop adjacent (can't go on them)
+                    if (targetType === 'rock') {
+                        moved = this.tractor.setPosition(targetCol - 1, this.tractor.row);
+                    } else {
+                        moved = this.tractor.setPosition(targetCol, this.tractor.row);
+                    }
+                }
+                break;
+            }
+            case 'find_left': {
+                // F{char} - find object to the left, go ON it
+                const { targetType } = command;
+                const targetCol = this.grid.findObjectOnRow(this.tractor.col, this.tractor.row, -1, targetType);
+                if (targetCol !== null) {
+                    // For obstacles, stop adjacent (can't go on them)
+                    if (targetType === 'rock') {
+                        moved = this.tractor.setPosition(targetCol + 1, this.tractor.row);
+                    } else {
+                        moved = this.tractor.setPosition(targetCol, this.tractor.row);
+                    }
+                }
+                break;
+            }
+            case 'till_right': {
+                // t{char} - find object to the right, stop ONE cell before
+                const { targetType } = command;
+                const targetCol = this.grid.findObjectOnRow(this.tractor.col, this.tractor.row, 1, targetType);
+                if (targetCol !== null && targetCol > this.tractor.col + 1) {
+                    moved = this.tractor.setPosition(targetCol - 1, this.tractor.row);
+                }
+                break;
+            }
+            case 'till_left': {
+                // T{char} - find object to the left, stop ONE cell after
+                const { targetType } = command;
+                const targetCol = this.grid.findObjectOnRow(this.tractor.col, this.tractor.row, -1, targetType);
+                if (targetCol !== null && targetCol < this.tractor.col - 1) {
+                    moved = this.tractor.setPosition(targetCol + 1, this.tractor.row);
+                }
+                break;
+            }
         }
 
         // Check collision after move
@@ -440,12 +486,110 @@ export class Game {
                 this.executeDeleteBack(true);
                 break;
             case 'delete_char':
-                // x - delete character at current position
-                this.deleteRangeAndScore(this.tractor.col, this.tractor.col, this.tractor.row);
+                // x - delete character(s) at current position (supports count: 3x = 3 chars)
+                {
+                    const col = this.tractor.col;
+                    const row = this.tractor.row;
+                    const count = command.count || 1;
+                    const endCol = Math.min(col + count - 1, this.grid.cols - 1);
+                    this.deleteRangeAndScore(col, endCol, row);
+                    // Animate forward, then teleport back (Vim cursor stays in place)
+                    if (endCol > col) {
+                        this.tractor.setPositionWithReturn(endCol, row, col, row);
+                    }
+                }
+                break;
+            case 'delete_char_back':
+                // X - delete character(s) to the left (supports count: 3X = 3 chars left)
+                {
+                    const col = this.tractor.col;
+                    const row = this.tractor.row;
+                    const count = command.count || 1;
+                    const startCol = Math.max(col - count, 0);
+                    if (startCol < col) {
+                        this.deleteRangeAndScore(startCol, col - 1, row);
+                        // Animate backward, then teleport back (Vim cursor stays in place)
+                        this.tractor.setPositionWithReturn(startCol, row, col, row);
+                    }
+                }
+                break;
+            case 'delete_to_line_start':
+                // d0 - delete from current position back to start of line
+                {
+                    const col = this.tractor.col;
+                    const row = this.tractor.row;
+                    if (col > 0) {
+                        this.deleteRangeAndScore(0, col - 1, row);
+                        // Animate backward to start, then teleport back
+                        this.tractor.setPositionWithReturn(0, row, col, row);
+                    }
+                }
+                break;
+            case 'delete_to_line_end':
+                // d$ - delete from current position to end of line
+                {
+                    const col = this.tractor.col;
+                    const row = this.tractor.row;
+                    const endCol = this.grid.cols - 1;
+                    if (col < endCol) {
+                        this.deleteRangeAndScore(col + 1, endCol, row);
+                        // Animate forward, then teleport back (Vim cursor stays in place)
+                        this.tractor.setPositionWithReturn(endCol, row, col, row);
+                    }
+                }
                 break;
             case 'undo':
                 // u - undo (placeholder - not fully implemented)
                 // Could restore from position history in the future
+                break;
+
+            // Change commands (c) - collect + plant seeds
+            case 'change_word':
+                // cw - collect from position to start of next word + plant seeds
+                this.executeChangeWord();
+                break;
+            case 'change_word_end':
+                // ce - collect from position to end of word + plant seeds
+                this.executeChangeWordEnd();
+                break;
+            case 'change_back':
+                // cb - collect backward to previous word + plant seeds
+                this.executeChangeBack();
+                break;
+            case 'change_line':
+                // cc - collect entire row + plant seeds (costs gas cans)
+                if (this.tractor.getGasCans() >= GameConfig.powerupCosts.cc) {
+                    soundEngine.playPowerup();
+                    if (this.renderer.addRowSmokeEffect) {
+                        this.renderer.addRowSmokeEffect(this.tractor.row);
+                    }
+                    const results = this.changeRowAndPlantSeeds(this.tractor.row);
+                    this.tractor.useGasCans(GameConfig.powerupCosts.cc);
+                    this.score += results.points;
+                    for (let i = 0; i < results.lives; i++) {
+                        this.tractor.addLife();
+                    }
+                    for (let i = 0; i < results.gasCans; i++) {
+                        this.tractor.addGasCan();
+                    }
+                    if (results.points > 0) soundEngine.playCollect();
+                    if (results.lives > 0) soundEngine.playExtraLife();
+                    if (results.gasCans > 0) soundEngine.playGasCanCollect();
+                    this.hud.updateScore(this.score);
+                    this.updateLivesDisplay();
+                    this.updateGasCanDisplay();
+                }
+                break;
+
+            // Rock transmutation command (r + direction)
+            case 'replace_rock':
+                // Cannot start transmutation if already transmuting
+                if (this.isTransmuting) break;
+
+                const targetCell = this.getAdjacentCell(command.direction);
+                if (targetCell && targetCell.cell && targetCell.cell.type === CELL_TYPES.OBSTACLE) {
+                    this.startTransmutation(targetCell.col, targetCell.row, targetCell.cell.subtype);
+                }
                 break;
         }
     }
@@ -460,6 +604,10 @@ export class Game {
             if (cell) {
                 if (cell.type === CELL_TYPES.ITEM && cell.points) {
                     points += cell.points;
+                    // Flying vegetable effect
+                    if (this.renderer.addFlyingVegetable) {
+                        this.renderer.addFlyingVegetable(col, row, cell.emoji);
+                    }
                 } else if (cell.type === CELL_TYPES.LIFE) {
                     lives++;
                 } else if (cell.type === CELL_TYPES.POWERUP) {
@@ -486,6 +634,10 @@ export class Game {
                 if (cell) {
                     if (cell.type === CELL_TYPES.ITEM && cell.points) {
                         totalPoints += cell.points;
+                        // Flying vegetable effect (sparse for performance)
+                        if (this.renderer.addFlyingVegetable && Math.random() < 0.3) {
+                            this.renderer.addFlyingVegetable(col, row, cell.emoji);
+                        }
                     } else if (cell.type === CELL_TYPES.LIFE) {
                         lives++;
                     } else if (cell.type === CELL_TYPES.POWERUP) {
@@ -499,6 +651,229 @@ export class Game {
         // Apply dG multiplier to balance the powerful screen clear
         const points = Math.floor(totalPoints * GameConfig.points.dGMultiplier);
         return { points, lives, gasCans };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CHANGE COMMANDS (c) - Collect items and plant seeds
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // cw - Collect from current position to start of next word + plant seeds
+    executeChangeWord() {
+        const col = this.tractor.col;
+        const row = this.tractor.row;
+
+        const currentWord = this.grid.findWordAt(col, row);
+        if (!currentWord) return;
+
+        const nextWord = this.grid.findNextWord(currentWord.end, row, 1);
+        const endCol = nextWord ? nextWord.start - 1 : currentWord.end;
+
+        this.collectAndPlantSeeds(col, endCol, row);
+        // Animate forward, then teleport back
+        if (endCol > col) {
+            this.tractor.setPositionWithReturn(endCol, row, col, row);
+        }
+    }
+
+    // ce - Collect from current position to end of word + plant seeds
+    executeChangeWordEnd() {
+        const col = this.tractor.col;
+        const row = this.tractor.row;
+
+        const currentWord = this.grid.getWordBoundaries(col, row);
+
+        let targetCol;
+        if (currentWord && col < currentWord.end) {
+            targetCol = currentWord.end;
+        } else {
+            const nextWord = this.grid.findNextWord(col, row, 1);
+            if (nextWord) targetCol = nextWord.end;
+        }
+
+        if (targetCol !== undefined) {
+            this.collectAndPlantSeeds(col, targetCol, row);
+            // Animate forward, then teleport back
+            if (targetCol > col) {
+                this.tractor.setPositionWithReturn(targetCol, row, col, row);
+            }
+        }
+    }
+
+    // cb - Collect backward to previous word + plant seeds
+    executeChangeBack() {
+        const col = this.tractor.col;
+        const row = this.tractor.row;
+
+        const prevWord = this.grid.findPrevWord(col, row);
+        let startCol = prevWord ? prevWord.start : 0;
+
+        if (startCol < col) {
+            this.collectAndPlantSeeds(startCol, col - 1, row);
+            // Animate backward, then teleport back
+            this.tractor.setPositionWithReturn(startCol, row, col, row);
+        }
+    }
+
+    // Core method: collect items in range and plant seeds
+    collectAndPlantSeeds(fromCol, toCol, row) {
+        const minCol = Math.min(fromCol, toCol);
+        const maxCol = Math.max(fromCol, toCol);
+        let collected = false;
+        let livesLost = 0;
+        let powerupCollected = false;
+        let lifeCollected = false;
+
+        for (let col = minCol; col <= maxCol; col++) {
+            const cell = this.grid.getCell(col, row);
+            if (cell) {
+                // Skip seeds - they can't be collected
+                if (cell.type === CELL_TYPES.SEED) {
+                    continue;
+                }
+
+                if (cell.type === CELL_TYPES.ITEM && cell.points) {
+                    this.score += cell.points;
+                    collected = true;
+                    // Add collection effects
+                    if (this.renderer.addCollectEffect) {
+                        this.renderer.addCollectEffect(col, row, cell.emoji);
+                    }
+                    // Flying vegetable effect
+                    if (this.renderer.addFlyingVegetable) {
+                        this.renderer.addFlyingVegetable(col, row, cell.emoji);
+                    }
+                    // Score popup
+                    if (this.renderer.addScorePopup) {
+                        this.renderer.addScorePopup(col, row, cell.points);
+                    }
+                } else if (cell.type === CELL_TYPES.OBSTACLE) {
+                    livesLost++;
+                    if (this.renderer.addExplosion) {
+                        this.renderer.addExplosion(col, row);
+                    }
+                } else if (cell.type === CELL_TYPES.POWERUP) {
+                    this.tractor.addGasCan();
+                    this.updateGasCanDisplay();
+                    powerupCollected = true;
+                    if (this.renderer.addCollectEffect) {
+                        this.renderer.addCollectEffect(col, row, cell.emoji);
+                    }
+                } else if (cell.type === CELL_TYPES.LIFE) {
+                    if (this.tractor.addLife) {
+                        this.tractor.addLife();
+                        lifeCollected = true;
+                        if (this.renderer.addCollectEffect) {
+                            this.renderer.addCollectEffect(col, row, cell.emoji);
+                        }
+                    }
+                }
+            }
+
+            // Clear cell and plant seed (even if was empty)
+            this.grid.clearCell(col, row);
+            this.plantSeed(col, row);
+        }
+
+        // Play sounds
+        if (collected) soundEngine.playCollect();
+        if (powerupCollected) soundEngine.playGasCanCollect();
+        if (lifeCollected) soundEngine.playExtraLife();
+
+        // Apply lives lost from obstacles
+        for (let i = 0; i < livesLost; i++) {
+            if (this.tractor.loseLife) {
+                const remaining = this.tractor.loseLife();
+                soundEngine.playCrash();
+                if (remaining <= 0) {
+                    this.updateLivesDisplay();  // Update display BEFORE game over
+                    this.gameOver();
+                    return;
+                }
+            }
+        }
+
+        this.hud.updateScore(this.score);
+        this.updateLivesDisplay();
+    }
+
+    // Plant a single seed at position
+    plantSeed(col, row) {
+        this.grid.setCell(col, row, {
+            type: CELL_TYPES.SEED,
+            subtype: SEED_ITEM.name,
+            emoji: GameConfig.seeds.emoji,
+            plantedAt: Date.now(),
+            growthTime: GameConfig.seeds.growthTime
+        });
+    }
+
+    // cc - Change entire row: collect all + plant seeds
+    changeRowAndPlantSeeds(row) {
+        let points = 0;
+        let lives = 0;
+        let gasCans = 0;
+
+        for (let col = 0; col < this.grid.cols; col++) {
+            const cell = this.grid.getCell(col, row);
+            if (cell) {
+                // Skip seeds
+                if (cell.type === CELL_TYPES.SEED) {
+                    continue;
+                }
+
+                if (cell.type === CELL_TYPES.ITEM && cell.points) {
+                    points += cell.points;
+                    // Add collection effects
+                    if (this.renderer.addFlyingVegetable) {
+                        this.renderer.addFlyingVegetable(col, row, cell.emoji);
+                    }
+                    if (this.renderer.addScorePopup) {
+                        this.renderer.addScorePopup(col, row, cell.points);
+                    }
+                } else if (cell.type === CELL_TYPES.LIFE) {
+                    lives++;
+                } else if (cell.type === CELL_TYPES.POWERUP) {
+                    gasCans++;
+                }
+                // Obstacles are cleared without penalty (using gas)
+            }
+
+            // Clear and plant seed
+            this.grid.clearCell(col, row);
+            this.plantSeed(col, row);
+        }
+
+        return { points, lives, gasCans };
+    }
+
+    // Update seeds: check for growth and convert to vegetables
+    updateSeeds() {
+        const now = Date.now();
+        const visibleTop = this.getVisibleTopRow() - 5;  // Buffer
+        const visibleBottom = this.getVisibleBottomRow() + 5;
+
+        for (let row = visibleTop; row <= visibleBottom; row++) {
+            for (let col = 0; col < this.grid.cols; col++) {
+                const cell = this.grid.getCell(col, row);
+                if (cell && cell.type === CELL_TYPES.SEED) {
+                    const age = now - cell.plantedAt;
+                    if (age >= cell.growthTime) {
+                        // Grow into random vegetable
+                        const vegetable = this.spawner.randomVegetable();
+                        this.grid.setCell(col, row, {
+                            type: CELL_TYPES.ITEM,
+                            subtype: vegetable.name,
+                            emoji: vegetable.emoji,
+                            points: this.spawner.getItemPoints(vegetable.name)
+                        });
+                        // Add growth effect
+                        if (this.renderer.addGrowthEffect) {
+                            this.renderer.addGrowthEffect(col, row);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Collect items in a horizontal range (for word movements)
@@ -530,7 +905,7 @@ export class Game {
     }
 
     // dw - Delete from current position to start of next word
-    // Vim behavior: cursor stays in place after deletion
+    // Game behavior: tractor moves forward through the deleted area (like db moves backward)
     executeDeleteWord() {
         const col = this.tractor.col;
         const row = this.tractor.row;
@@ -548,11 +923,14 @@ export class Game {
         const endCol = nextWord ? nextWord.start - 1 : currentWord.end;
 
         this.deleteRangeAndScore(col, endCol, row);
-        // Cursor stays in place (Vim behavior)
+        // Game behavior: tractor animates forward, then teleports back (Vim cursor stays in place)
+        if (endCol > col) {
+            this.tractor.setPositionWithReturn(endCol, row, col, row);
+        }
     }
 
     // de - Delete from current position to end of word
-    // Vim behavior: cursor stays in place after deletion
+    // Game behavior: tractor animates forward, then teleports back (Vim cursor stays in place)
     executeDeleteWordEnd() {
         const col = this.tractor.col;
         const row = this.tractor.row;
@@ -573,7 +951,10 @@ export class Game {
 
         if (targetCol !== undefined) {
             this.deleteRangeAndScore(col, targetCol, row);
-            // Cursor stays in place (Vim behavior)
+            // Game behavior: tractor animates forward, then teleports back (Vim cursor stays in place)
+            if (targetCol > col) {
+                this.tractor.setPositionWithReturn(targetCol, row, col, row);
+            }
         }
     }
 
@@ -599,7 +980,7 @@ export class Game {
         // Delete from startCol to position before current (db doesn't delete current char)
         if (startCol < col) {
             this.deleteRangeAndScore(startCol, col - 1, row);
-            // Cursor moves to start of deleted area (Vim behavior)
+            // Vim behavior: cursor moves to start of deleted area with 'b' motion
             this.tractor.setPosition(startCol, row);
         }
     }
@@ -617,14 +998,27 @@ export class Game {
         for (let col = minCol; col <= maxCol; col++) {
             const cell = this.grid.getCell(col, row);
             if (cell) {
+                // Skip seeds - they cannot be deleted
+                if (cell.type === CELL_TYPES.SEED) {
+                    continue;
+                }
+
                 if (cell.type === CELL_TYPES.ITEM) {
                     // Item - collect points with animation
                     if (cell.points) {
                         this.score += cell.points;
                         itemsCollected = true;
-                        // Add collection effect
+                        // Add collection effects
                         if (this.renderer.addCollectEffect) {
                             this.renderer.addCollectEffect(col, row, cell.emoji);
+                        }
+                        // Flying vegetable effect
+                        if (this.renderer.addFlyingVegetable) {
+                            this.renderer.addFlyingVegetable(col, row, cell.emoji);
+                        }
+                        // Score popup
+                        if (this.renderer.addScorePopup) {
+                            this.renderer.addScorePopup(col, row, cell.points);
                         }
                     }
                 } else if (cell.type === CELL_TYPES.OBSTACLE) {
@@ -672,6 +1066,7 @@ export class Game {
                 const remaining = this.tractor.loseLife();
                 soundEngine.playCrash();
                 if (remaining <= 0) {
+                    this.updateLivesDisplay();  // Update display BEFORE game over
                     this.gameOver();
                     return;
                 }
@@ -681,6 +1076,130 @@ export class Game {
         // Update displays
         this.hud.updateScore(this.score);
         this.updateLivesDisplay();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ROCK TRANSMUTATION (r + direction command)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Get adjacent cell in a direction relative to tractor
+    getAdjacentCell(direction) {
+        let col = this.tractor.col;
+        let row = this.tractor.row;
+
+        switch (direction) {
+            case 'left':  col -= 1; break;
+            case 'right': col += 1; break;
+            case 'up':    row -= 1; break;
+            case 'down':  row += 1; break;
+            default: return null;
+        }
+
+        // Check bounds
+        if (col < 0 || col >= this.grid.cols) return null;
+
+        const cell = this.grid.getCell(col, row);
+        return { col, row, cell };
+    }
+
+    // Start rock transmutation process
+    startTransmutation(col, row, rockSubtype) {
+        this.isTransmuting = true;
+        this.transmuteTarget = { col, row, subtype: rockSubtype };
+        this.transmuteStartTime = Date.now();
+        // Visual effect: notify renderer that transmutation started
+        if (this.renderer.startTransmuteEffect) {
+            this.renderer.startTransmuteEffect(col, row);
+        }
+        // Start working sound (drilling/digging)
+        this.stopTransmuteSound = soundEngine.playTransmuteWork();
+    }
+
+    // Complete transmutation - rock becomes item or penalty
+    completeTransmutation() {
+        if (!this.transmuteTarget) return;
+
+        const { col, row, subtype } = this.transmuteTarget;
+
+        // Check if it's a moai rock (trap!)
+        const isMoai = subtype === 'stone_pile' || subtype === 'moai';
+
+        if (isMoai) {
+            // Moai trap! Lose 50 points
+            this.score = Math.max(0, this.score + GameConfig.rockTransmute.moaiPenalty);
+            this.hud.updateScore(this.score);
+            soundEngine.playPenalty();
+            // Remove the moai rock
+            this.grid.clearCell(col, row);
+            // Show RED smoke effect (moai trap)
+            if (this.renderer.addSmokeEffect) {
+                this.renderer.addSmokeEffect(col, row, true); // true = red smoke
+            }
+            // Show penalty popup
+            if (this.renderer.addScorePopup) {
+                this.renderer.addScorePopup(col, row, GameConfig.rockTransmute.moaiPenalty);
+            }
+        } else {
+            // Normal rock - 50% chance of finding something
+            if (Math.random() < GameConfig.rockTransmute.successChance) {
+                // Success! Create snail or mushroom
+                const resultType = GameConfig.rockTransmute.results[
+                    Math.floor(Math.random() * GameConfig.rockTransmute.results.length)
+                ];
+                const emoji = resultType === 'snail' ? '🐌' : '🍄';
+                const points = GameConfig.points[resultType] || GameConfig.rockTransmute.points;
+
+                // Clear rock and place item
+                this.grid.clearCell(col, row);
+                this.grid.setCell(col, row, {
+                    type: CELL_TYPES.ITEM,
+                    subtype: resultType,
+                    emoji: emoji,
+                    points: points
+                });
+
+                // Visual feedback
+                if (this.renderer.addGrowthEffect) {
+                    this.renderer.addGrowthEffect(col, row);
+                }
+                soundEngine.playCollect();
+            } else {
+                // Nothing found - just clear the rock with smoke
+                this.grid.clearCell(col, row);
+                // Show normal smoke effect for empty result
+                if (this.renderer.addSmokeEffect) {
+                    this.renderer.addSmokeEffect(col, row, false); // false = normal smoke
+                }
+            }
+        }
+
+        // Stop transmutation effect and sound
+        if (this.renderer.stopTransmuteEffect) {
+            this.renderer.stopTransmuteEffect();
+        }
+        if (this.stopTransmuteSound) {
+            this.stopTransmuteSound();
+            this.stopTransmuteSound = null;
+        }
+
+        this.isTransmuting = false;
+        this.transmuteTarget = null;
+        this.transmuteStartTime = 0;
+    }
+
+    // Cancel transmutation (e.g., if tractor falls off screen)
+    cancelTransmutation() {
+        if (this.renderer.stopTransmuteEffect) {
+            this.renderer.stopTransmuteEffect();
+        }
+        // Stop transmutation sound
+        if (this.stopTransmuteSound) {
+            this.stopTransmuteSound();
+            this.stopTransmuteSound = null;
+        }
+        this.isTransmuting = false;
+        this.transmuteTarget = null;
+        this.transmuteStartTime = 0;
     }
 
     handleCommandLine(command) {
@@ -787,9 +1306,26 @@ export class Game {
 
         this.gameTime += deltaTime;
 
+        // Update infobar (time and position)
+        this.hud.updateInfobarTime(this.gameTime);
+        // Row shows distance from starting row (how far the player has advanced)
+        const rowsAdvanced = this.startingRow - this.tractor.row;
+        this.hud.updateInfobarPosition(rowsAdvanced, this.tractor.col);
+
         // Update tractor animation (if method exists - handles cache compatibility)
         if (this.tractor.updateAnimation) {
             this.tractor.updateAnimation(deltaTime);
+        }
+
+        // Update rock transmutation timer
+        if (this.isTransmuting) {
+            const elapsed = Date.now() - this.transmuteStartTime;
+            // Update progress for renderer
+            this.transmuteProgress = Math.min(elapsed / GameConfig.rockTransmute.duration, 1);
+
+            if (elapsed >= GameConfig.rockTransmute.duration) {
+                this.completeTransmutation();
+            }
         }
 
         // Record position for undo
@@ -835,6 +1371,11 @@ export class Game {
         const visibleHeight = this.getVisibleCanvasHeight();
         const bottomEdgeY = visibleHeight - CELL_SIZE;  // Tractor top at this Y means bottom touches visible edge
         if (!this.debugMode && tractorScreenY >= bottomEdgeY) {
+            // Cancel any ongoing transmutation when falling off screen
+            if (this.isTransmuting) {
+                this.cancelTransmutation();
+            }
+
             // Tractor touched bottom edge - lose a life
             if (this.renderer.startShake) {
                 this.renderer.startShake();
@@ -856,6 +1397,9 @@ export class Game {
             this.tractor.setPosition(this.tractor.col, safeRow);
         }
 
+        // Update seeds (check for growth)
+        this.updateSeeds();
+
         // Check collision at tractor's position
         this.checkCollisions();
 
@@ -872,7 +1416,16 @@ export class Game {
     }
 
     getVisibleBottomRow() {
-        return Math.floor((this.cameraY + CANVAS_HEIGHT) / CELL_SIZE);
+        // For game over detection - uses actual visible height
+        const visibleHeight = this.getVisibleCanvasHeight();
+        return Math.floor((this.cameraY + visibleHeight) / CELL_SIZE);
+    }
+
+    getNavigableBottomRow() {
+        // For G command navigation - uses standard grid rows minus safety margin
+        // This ensures G stops before the dangerous bottom edge
+        const margin = GameConfig.navigation.gCommandMargin;
+        return this.getVisibleTopRow() + GRID_ROWS - 1 - margin;
     }
 
     getTractorScreenY() {
@@ -956,6 +1509,12 @@ export class Game {
         this.updateLivesDisplay();
         this.hud.hideOverlay();
 
+        // Show infobar with player info
+        this.hud.showInfobar(true);
+        this.hud.updateInfobarPlayer(this.playerName);
+        this.hud.updateInfobarTime(0);
+        this.hud.updateInfobarPosition(0, this.tractor.col);
+
         // Track telemetry
         this.storage.incrementGamePlayed();
 
@@ -986,6 +1545,9 @@ export class Game {
 
     gameOver() {
         this.state = GAME_STATES.GAME_OVER;
+
+        // Hide infobar
+        this.hud.showInfobar(false);
 
         // Stop engine
         soundEngine.stopEngine();

@@ -73,6 +73,26 @@ export class Grid {
         return cell !== null && cell.type === CELL_TYPES.POWERUP;
     }
 
+    isSeed(col, row) {
+        const cell = this.getCell(col, row);
+        return cell !== null && cell.type === CELL_TYPES.SEED;
+    }
+
+    isLife(col, row) {
+        const cell = this.getCell(col, row);
+        return cell !== null && cell.type === CELL_TYPES.LIFE;
+    }
+
+    // Check if a cell is passable (can walk through)
+    // Passable: empty, items, powerups, lives, seeds
+    // Not passable: obstacles
+    isPassable(col, row) {
+        const cell = this.getCell(col, row);
+        if (cell === null) return true;  // Empty = passable
+        if (cell.type === CELL_TYPES.OBSTACLE) return false;  // Obstacles block
+        return true;  // Everything else is passable
+    }
+
     // Find next obstacle/item in a direction from a position
     findNextInDirection(startCol, startRow, direction) {
         let col = startCol + direction;
@@ -81,6 +101,41 @@ export class Grid {
             const cell = this.getCell(col, startRow);
             if (cell !== null) {
                 return { col, row: startRow, cell };
+            }
+            col += direction;
+        }
+
+        return null;
+    }
+
+    // Find object of specific type on same row
+    // targetType: 'rock', 'vegetable', 'gas', 'life'
+    // direction: 1 (right) or -1 (left)
+    // Returns column of found object, or null
+    findObjectOnRow(startCol, row, direction, targetType) {
+        let col = startCol + direction;
+
+        while (col >= 0 && col < this.cols) {
+            const cell = this.getCell(col, row);
+            if (cell !== null) {
+                let matches = false;
+                switch (targetType) {
+                    case 'rock':
+                        matches = cell.type === CELL_TYPES.OBSTACLE;
+                        break;
+                    case 'vegetable':
+                        matches = cell.type === CELL_TYPES.ITEM;
+                        break;
+                    case 'gas':
+                        matches = cell.type === CELL_TYPES.POWERUP;
+                        break;
+                    case 'life':
+                        matches = cell.type === CELL_TYPES.LIFE;
+                        break;
+                }
+                if (matches) {
+                    return col;
+                }
             }
             col += direction;
         }

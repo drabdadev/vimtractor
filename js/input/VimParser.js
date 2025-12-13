@@ -75,6 +75,11 @@ export class VimParser {
             return true;
         }
 
+        // ? key toggles help overlay
+        if (key === '?') {
+            this.emitCommand({ type: 'help', action: 'toggle' });
+            return true;
+        }
 
         // Escape closes help
         if (key === 'Escape') {
@@ -103,6 +108,30 @@ export class VimParser {
         // Handle pending key sequences (gg, dd)
         if (this.pendingKey) {
             return this.handlePendingSequence(key);
+        }
+
+        // X (capital) - delete character(s) to the left (must check before toLowerCase switch)
+        if (key === 'X') {
+            this.emitAction('delete_char_back');
+            return true;
+        }
+
+        // G (capital) - go to bottom (must check before toLowerCase switch)
+        if (key === 'G') {
+            this.emitMove('file_end');
+            return true;
+        }
+
+        // F (capital) - find backwards (must check before toLowerCase switch)
+        if (key === 'F') {
+            this.pendingKey = 'F';
+            return true;
+        }
+
+        // T (capital) - till backwards (must check before toLowerCase switch)
+        if (key === 'T') {
+            this.pendingKey = 'T';
+            return true;
         }
 
         // Digit handling for count
@@ -152,18 +181,26 @@ export class VimParser {
                 this.pendingKey = 'd';
                 this.startCountTimeout();
                 return true;
+            case 'c':
+                this.pendingKey = 'c';
+                this.startCountTimeout();
+                return true;
+            case 'r':
+                this.pendingKey = 'r';
+                this.startCountTimeout();
+                return true;
+            case 'f':
+                this.pendingKey = 'f';
+                return true;
+            case 't':
+                this.pendingKey = 't';
+                return true;
             case 'x':
                 this.emitAction('delete_char');
                 return true;
             case 'u':
                 this.emitAction('undo');
                 return true;
-        }
-
-        // G (capital) - go to bottom
-        if (key === 'G') {
-            this.emitMove('file_end');
-            return true;
         }
 
         return false;
@@ -200,6 +237,68 @@ export class VimParser {
             case 'dB':
                 this.emitAction('delete_back_aggressive');
                 return true;
+            case 'd0':
+                this.emitAction('delete_to_line_start');
+                return true;
+            case 'd$':
+                this.emitAction('delete_to_line_end');
+                return true;
+
+            // Change commands (c) - collect + plant seeds
+            case 'cw':
+                this.emitAction('change_word');
+                return true;
+            case 'ce':
+                this.emitAction('change_word_end');
+                return true;
+            case 'cb':
+                this.emitAction('change_back');
+                return true;
+            case 'cc':
+                this.emitAction('change_line');
+                return true;
+
+            // Replace rock commands (r) - transmute adjacent rock
+            case 'rh':
+                this.emitActionWithDirection('replace_rock', 'left');
+                return true;
+            case 'rj':
+                this.emitActionWithDirection('replace_rock', 'down');
+                return true;
+            case 'rk':
+                this.emitActionWithDirection('replace_rock', 'up');
+                return true;
+            case 'rl':
+                this.emitActionWithDirection('replace_rock', 'right');
+                return true;
+        }
+
+        // Find/Till commands - f/F/t/T + target type
+        // Target types: r=rock, v=vegetable, g=gas, l=life
+        const targetKey = key.toLowerCase();
+        const targetTypes = {
+            'r': 'rock',
+            'v': 'vegetable',
+            'g': 'gas',
+            'l': 'life'
+        };
+
+        if (targetTypes[targetKey]) {
+            const targetType = targetTypes[targetKey];
+            switch (pendingKey) {
+                case 'f':
+                    this.emitMove('find_right', { targetType });
+                    return true;
+                case 'F':
+                    this.emitMove('find_left', { targetType });
+                    return true;
+                case 't':
+                    this.emitMove('till_right', { targetType });
+                    return true;
+                case 'T':
+                    this.emitMove('till_left', { targetType });
+                    return true;
+            }
         }
 
         // Invalid sequence, reset
@@ -307,6 +406,19 @@ export class VimParser {
             this.onCommand({
                 type: COMMAND_TYPES.ACTION,
                 action,
+                count
+            });
+        }
+    }
+
+    emitActionWithDirection(action, direction) {
+        const count = this.getEffectiveCount();
+        this.resetCount();
+        if (this.onCommand) {
+            this.onCommand({
+                type: COMMAND_TYPES.ACTION,
+                action,
+                direction,
                 count
             });
         }
