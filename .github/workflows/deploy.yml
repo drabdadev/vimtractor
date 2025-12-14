@@ -18,6 +18,7 @@ jobs:
   deploy:
     name: Deploy VimTractor
     runs-on: ubuntu-latest
+    environment: vps1-prod
 
     steps:
       - name: Deploy to VPS via SSH
