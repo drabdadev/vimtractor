@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production --no-audit
+RUN npm install --omit=dev --no-audit
 
 # Production stage
 FROM node:20-alpine AS production
