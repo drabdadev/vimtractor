@@ -26,6 +26,7 @@ export class SoundEngine {
         this.engineLoop = null;
         this.engineGain = null;
         this.engineRunning = false;
+        this.enginePaused = false;
 
         // Menu jingle state
         this.menuJingle = null;
@@ -1100,79 +1101,154 @@ export class SoundEngine {
     // ==================== LOOPS ====================
 
     /**
-     * Start tractor engine loop - rhythmic diesel putt-putt
+     * Start tractor engine loop - old diesel with discrete "putt" explosions
      */
     startEngine() {
         if (!this.initialized || this.engineRunning) return;
 
-        const now = this.audioContext.currentTime;
-
-        // Create engine gain - subtle
+        // Engine gain node
         this.engineGain = this.audioContext.createGain();
-        this.engineGain.gain.value = this.musicVolume * 0.12;
+        this.engineGain.gain.value = this.musicVolume * 0.4;
         this.engineGain.connect(this.masterGain);
 
-        // Putt-putt rhythm LFO (tractor engine firing rate)
-        const lfo = this.audioContext.createOscillator();
-        lfo.type = 'square'; // Square wave for distinct putt-putt
-        lfo.frequency.value = 3.5; // ~210 RPM feel
-
-        const lfoGain = this.audioContext.createGain();
-        lfoGain.gain.value = 20; // Modulation depth for frequency
-
-        lfo.connect(lfoGain);
-
-        // Main engine sound - low sawtooth with character
-        const engine = this.audioContext.createOscillator();
-        engine.type = 'sawtooth';
-        engine.frequency.value = 42; // Low rumble base
-
-        lfoGain.connect(engine.frequency); // FM modulation creates putt-putt
-
-        // Filter for warmth
-        const filter = this.audioContext.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = 180;
-        filter.Q.value = 2; // Slight resonance
-
-        // Amplitude modulation for more pronounced rhythm
-        const ampLfo = this.audioContext.createOscillator();
-        ampLfo.type = 'sine';
-        ampLfo.frequency.value = 3.5; // Same as main LFO
-
-        const ampLfoGain = this.audioContext.createGain();
-        ampLfoGain.gain.value = 0.3; // Volume variation amount
-
-        const engineVol = this.audioContext.createGain();
-        engineVol.gain.value = 0.6;
-
-        ampLfo.connect(ampLfoGain);
-        ampLfoGain.connect(engineVol.gain); // Modulate volume
-
-        // Sub bass (steady foundation)
-        const sub = this.audioContext.createOscillator();
-        sub.type = 'sine';
-        sub.frequency.value = 28;
-
-        const subGain = this.audioContext.createGain();
-        subGain.gain.value = 0.35;
-
-        // Connect
-        engine.connect(filter);
-        filter.connect(engineVol);
-        engineVol.connect(this.engineGain);
-
-        sub.connect(subGain);
-        subGain.connect(this.engineGain);
-
-        // Start
-        lfo.start(now);
-        ampLfo.start(now);
-        engine.start(now);
-        sub.start(now);
-
-        this.engineLoop = { lfo, engine, sub, filter, lfoGain, subGain, ampLfo, ampLfoGain, engineVol };
         this.engineRunning = true;
+        this.enginePaused = false;
+
+        // Schedule individual "putt" sounds with variation
+        const self = this;
+        let puttCount = 0;
+
+        const schedulePutt = () => {
+            if (!self.engineRunning || self.enginePaused) return;
+
+            const now = self.audioContext.currentTime;
+            puttCount++;
+
+            // More timing variation for organic feel
+            const variance = (Math.random() - 0.5) * 0.035;
+
+            // Vary intensity per putt (some stronger, some weaker)
+            const intensity = 0.7 + Math.random() * 0.5;
+
+            // Occasionally skip or double (engine irregularity)
+            const skipChance = Math.random();
+            if (skipChance < 0.03) return; // 3% chance to skip (misfire feel)
+
+            // === Explosion burst (filtered noise) ===
+            const burstDuration = 0.05 + Math.random() * 0.04;
+            const burstBuffer = self.audioContext.createBuffer(
+                1,
+                self.audioContext.sampleRate * burstDuration,
+                self.audioContext.sampleRate
+            );
+            const burstData = burstBuffer.getChannelData(0);
+            for (let i = 0; i < burstBuffer.length; i++) {
+                burstData[i] = Math.random() * 2 - 1;
+            }
+
+            const burst = self.audioContext.createBufferSource();
+            burst.buffer = burstBuffer;
+
+            // Bandpass filter - more frequency variation
+            const burstFilter = self.audioContext.createBiquadFilter();
+            burstFilter.type = 'bandpass';
+            burstFilter.frequency.value = 60 + Math.random() * 80;
+            burstFilter.Q.value = 1 + Math.random() * 1.5;
+
+            // Envelope
+            const burstGain = self.audioContext.createGain();
+            burstGain.gain.setValueAtTime(0, now + variance);
+            burstGain.gain.linearRampToValueAtTime(0.5 * intensity, now + variance + 0.006);
+            burstGain.gain.exponentialRampToValueAtTime(0.01, now + variance + burstDuration);
+
+            burst.connect(burstFilter);
+            burstFilter.connect(burstGain);
+            burstGain.connect(self.engineGain);
+
+            burst.start(now + variance);
+            burst.stop(now + variance + burstDuration);
+
+            // === Low thump - more variation ===
+            const thump = self.audioContext.createOscillator();
+            thump.type = 'sine';
+            const thumpFreq = 45 + Math.random() * 25;
+            thump.frequency.setValueAtTime(thumpFreq, now + variance);
+            thump.frequency.exponentialRampToValueAtTime(thumpFreq * 0.6, now + variance + 0.08);
+
+            const thumpGain = self.audioContext.createGain();
+            thumpGain.gain.setValueAtTime(0, now + variance);
+            thumpGain.gain.linearRampToValueAtTime(0.3 * intensity, now + variance + 0.008);
+            thumpGain.gain.exponentialRampToValueAtTime(0.01, now + variance + 0.1);
+
+            thump.connect(thumpGain);
+            thumpGain.connect(self.engineGain);
+
+            thump.start(now + variance);
+            thump.stop(now + variance + 0.12);
+
+            // === Mechanical click - varied ===
+            const click = self.audioContext.createOscillator();
+            click.type = Math.random() > 0.5 ? 'square' : 'sawtooth';
+            click.frequency.value = 150 + Math.random() * 200;
+
+            const clickGain = self.audioContext.createGain();
+            clickGain.gain.setValueAtTime(0.12 * intensity, now + variance);
+            clickGain.gain.exponentialRampToValueAtTime(0.001, now + variance + 0.02);
+
+            const clickFilter = self.audioContext.createBiquadFilter();
+            clickFilter.type = 'highpass';
+            clickFilter.frequency.value = 120 + Math.random() * 80;
+
+            click.connect(clickFilter);
+            clickFilter.connect(clickGain);
+            clickGain.connect(self.engineGain);
+
+            click.start(now + variance);
+            click.stop(now + variance + 0.025);
+
+            // === Occasional extra rattle (every ~5 putts) ===
+            if (puttCount % 5 === 0 || Math.random() < 0.15) {
+                const rattle = self.audioContext.createOscillator();
+                rattle.type = 'sawtooth';
+                rattle.frequency.value = 100 + Math.random() * 60;
+
+                const rattleGain = self.audioContext.createGain();
+                rattleGain.gain.setValueAtTime(0.08 * intensity, now + variance + 0.02);
+                rattleGain.gain.exponentialRampToValueAtTime(0.001, now + variance + 0.06);
+
+                rattle.connect(rattleGain);
+                rattleGain.connect(self.engineGain);
+
+                rattle.start(now + variance + 0.02);
+                rattle.stop(now + variance + 0.07);
+
+                rattle.onended = () => rattleGain.disconnect();
+            }
+
+            // Cleanup
+            burst.onended = () => {
+                burstFilter.disconnect();
+                burstGain.disconnect();
+            };
+            thump.onended = () => thumpGain.disconnect();
+            click.onended = () => {
+                clickFilter.disconnect();
+                clickGain.disconnect();
+            };
+        };
+
+        // Faster base interval with jitter
+        const baseInterval = 220; // ~270 RPM
+        const scheduleNext = () => {
+            if (!self.engineRunning) return;
+            schedulePutt();
+            // Variable timing between putts (200-260ms)
+            const nextDelay = baseInterval + (Math.random() - 0.5) * 60;
+            self.engineLoop.timeoutId = setTimeout(scheduleNext, nextDelay);
+        };
+
+        this.engineLoop = { timeoutId: null };
+        scheduleNext();
     }
 
     /**
@@ -1181,34 +1257,42 @@ export class SoundEngine {
     stopEngine() {
         if (!this.engineLoop) return;
 
-        const { lfo, engine, sub, filter, lfoGain, subGain, ampLfo, ampLfoGain, engineVol } = this.engineLoop;
+        // Clear the timeout
+        if (this.engineLoop.timeoutId) {
+            clearTimeout(this.engineLoop.timeoutId);
+        }
 
-        try {
-            lfo.stop();
-            engine.stop();
-            sub.stop();
-            if (ampLfo) ampLfo.stop();
-
-            lfo.disconnect();
-            engine.disconnect();
-            sub.disconnect();
-            filter.disconnect();
-            lfoGain.disconnect();
-            subGain.disconnect();
-            if (ampLfo) ampLfo.disconnect();
-            if (ampLfoGain) ampLfoGain.disconnect();
-            if (engineVol) engineVol.disconnect();
-
-            if (this.engineGain) {
-                this.engineGain.disconnect();
-            }
-        } catch (e) {
-            // Ignore cleanup errors
+        // Disconnect gain
+        if (this.engineGain) {
+            this.engineGain.disconnect();
         }
 
         this.engineLoop = null;
         this.engineGain = null;
         this.engineRunning = false;
+        this.enginePaused = false;
+    }
+
+    /**
+     * Pause tractor engine (mute but keep running)
+     */
+    pauseEngine() {
+        if (!this.engineRunning || this.enginePaused) return;
+        if (this.engineGain) {
+            this.engineGain.gain.setValueAtTime(0, this.audioContext.currentTime);
+        }
+        this.enginePaused = true;
+    }
+
+    /**
+     * Resume tractor engine from pause
+     */
+    resumeEngine() {
+        if (!this.engineRunning || !this.enginePaused) return;
+        if (this.engineGain) {
+            this.engineGain.gain.setValueAtTime(this.musicVolume * 0.4, this.audioContext.currentTime);
+        }
+        this.enginePaused = false;
     }
 
     /**
@@ -1237,20 +1321,22 @@ export class SoundEngine {
 
         const loopLength = melody.reduce((acc, n) => acc + n.dur, 0);
         let startTime = this.audioContext.currentTime;
-        let loopId = 0;
+
+        // Store reference to this for closure
+        const self = this;
 
         const scheduleLoop = () => {
-            if (!this.menuJingleRunning) return;
+            if (!self.menuJingleRunning) return;
 
-            const now = this.audioContext.currentTime;
+            const now = self.audioContext.currentTime;
 
             // Schedule notes ahead
             while (startTime < now + 0.5) {
                 let delay = 0;
                 melody.forEach(note => {
                     if (note.freq > 0) {
-                        const osc = this.audioContext.createOscillator();
-                        const gain = this.audioContext.createGain();
+                        const osc = self.audioContext.createOscillator();
+                        const gain = self.audioContext.createGain();
 
                         osc.type = 'triangle'; // Soft, vintage sound
 
@@ -1264,7 +1350,7 @@ export class SoundEngine {
                         gain.gain.exponentialRampToValueAtTime(0.001, noteStart + note.dur);
 
                         osc.connect(gain);
-                        gain.connect(this.menuJingleGain);
+                        gain.connect(self.menuJingleGain);
 
                         osc.start(noteStart);
                         osc.stop(noteStart + note.dur);
@@ -1277,11 +1363,14 @@ export class SoundEngine {
                 startTime += loopLength;
             }
 
-            loopId = setTimeout(scheduleLoop, 200);
+            // Store the new timeout ID in the object
+            if (self.menuJingle) {
+                self.menuJingle.loopId = setTimeout(scheduleLoop, 200);
+            }
         };
 
         this.menuJingleRunning = true;
-        this.menuJingle = { loopId };
+        this.menuJingle = { loopId: null };
         scheduleLoop();
     }
 

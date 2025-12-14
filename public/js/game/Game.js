@@ -101,6 +101,7 @@ export class Game {
                 if (this.pausedForCommand && this.previousState === GAME_STATES.PLAYING) {
                     this.state = GAME_STATES.PLAYING;
                     this.pausedForCommand = false;
+                    soundEngine.resumeEngine();
                 }
             } else if (command.mode === 'command') {
                 // Pause game while in command mode (so tractor doesn't fall)
@@ -108,6 +109,7 @@ export class Game {
                     this.previousState = this.state;
                     this.state = GAME_STATES.PAUSED;
                     this.pausedForCommand = true;
+                    soundEngine.pauseEngine();
                 }
                 soundEngine.playCommandMode();
             }
@@ -131,6 +133,7 @@ export class Game {
                 if (helpOpened && this.state === GAME_STATES.PLAYING) {
                     this.previousState = this.state;
                     this.state = GAME_STATES.PAUSED;
+                    soundEngine.pauseEngine();
                 }
                 return;
             } else if (command.action === 'close') {
@@ -138,6 +141,7 @@ export class Game {
                     this.hud.hideHelp();
                     if (this.previousState === GAME_STATES.PLAYING) {
                         this.state = GAME_STATES.PLAYING;
+                        soundEngine.resumeEngine();
                     }
                     return;
                 }

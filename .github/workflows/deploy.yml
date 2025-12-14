@@ -1,0 +1,57 @@
+# VimTractor Auto-Deploy to VPS
+# Triggers on push to main or manual dispatch
+
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild without cache'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  deploy:
+    name: Deploy VimTractor
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          FORCE_REBUILD: ${{ github.event.inputs.force_rebuild }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          envs: FORCE_REBUILD
+          script: |
+            echo "Starting VimTractor deployment..."
+            /var/docker/scripts/deploy-vimtractor.sh main "${FORCE_REBUILD:-false}"
+            echo "Deployment script completed!"
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "Verifying deployment..."
+            for i in 1 2 3 4 5 6 7 8 9 10; do
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' vimtractor 2>/dev/null || echo "not_found")
+              if [ "$STATUS" = "healthy" ]; then
+                echo "Container is healthy!"
+                exit 0
+              fi
+              echo "Waiting for container... (attempt $i/10)"
+              sleep 3
+            done
+            echo "Container health check failed"
+            docker logs vimtractor --tail 20
+            exit 1

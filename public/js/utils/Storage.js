@@ -6,8 +6,8 @@ const STORAGE_KEYS = {
     LEADERBOARD: 'vimtractor_leaderboard'
 };
 
-// API Configuration - change this to your server URL in production
-const API_URL = 'http://localhost:5110';
+// API Configuration - uses relative path (works in both dev and production)
+const API_URL = '/api';
 
 export class Storage {
     constructor() {

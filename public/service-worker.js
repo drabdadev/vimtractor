@@ -1,6 +1,7 @@
 // VimTractor Service Worker
 // Strategy: Stale-While-Revalidate for seamless updates
-const CACHE_NAME = 'vimtractor-v1';
+// v2: Production deployment with Express server
+const CACHE_NAME = 'vimtractor-v2';
 const APP_FILES = [
   '/',
   '/index.html',
