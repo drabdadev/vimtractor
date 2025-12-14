@@ -1369,9 +1369,38 @@ export class Game {
             this.grid.cleanupRowsAfter(cleanupRow);
         }
 
+        // Check if tractor goes above visible screen (skip in debug mode)
+        // If tractor is fully above the top edge, lose a life
+        const tractorScreenY = this.getTractorScreenY();
+        if (!this.debugMode && tractorScreenY < -CELL_SIZE) {
+            // Cancel any ongoing transmutation when going off screen
+            if (this.isTransmuting) {
+                this.cancelTransmutation();
+            }
+
+            // Tractor went above visible area - lose a life
+            if (this.renderer.startShake) {
+                this.renderer.startShake();
+            }
+
+            const remainingLives = this.tractor.loseLife();
+            this.updateLivesDisplay();
+
+            if (remainingLives <= 0) {
+                this.gameOver();
+                return;
+            }
+
+            // Went off top - play crash sound
+            soundEngine.playCrash();
+
+            // Respawn tractor at visible top row
+            const safeRow = this.getVisibleTopRow() + 2;
+            this.tractor.setPosition(this.tractor.col, safeRow);
+        }
+
         // Check if tractor touches bottom edge of VISIBLE screen (skip in debug mode)
         // Use visual position and the actual visible canvas height (accounts for browser viewport)
-        const tractorScreenY = this.getTractorScreenY();
         const visibleHeight = this.getVisibleCanvasHeight();
         const bottomEdgeY = visibleHeight - CELL_SIZE;  // Tractor top at this Y means bottom touches visible edge
         if (!this.debugMode && tractorScreenY >= bottomEdgeY) {

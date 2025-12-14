@@ -1,7 +1,7 @@
 // VimTractor Service Worker
 // Strategy: Stale-While-Revalidate for seamless updates
-// v2: Production deployment with Express server
-const CACHE_NAME = 'vimtractor-v2';
+// v3: Fix top boundary - lose life when going above visible screen
+const CACHE_NAME = 'vimtractor-v3';
 const APP_FILES = [
   '/',
   '/index.html',
