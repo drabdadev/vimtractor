@@ -9,8 +9,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm install --omit=dev --no-audit
+# Install production dependencies only (npm ci is faster and deterministic)
+RUN npm ci --only=production --no-audit --no-fund
 
 # Production stage
 FROM node:20-alpine AS production

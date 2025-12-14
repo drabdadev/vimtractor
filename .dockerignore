@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Git
+.git/
+.gitignore
+
+# Development files
+.DS_Store
+*.log
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# Documentation
+*.md
+docs/
+
+# Testing
+.playwright-mcp/
+tests/
+__tests__/
+coverage/
+
+# Local data
+data/leaderboard.json
+
+# Docker files (no need to copy into build context)
+docker-compose*.yml
+Dockerfile*
+.dockerignore
