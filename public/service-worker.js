@@ -1,7 +1,7 @@
 // VimTractor Service Worker
 // Strategy: Stale-While-Revalidate for seamless updates
-// v3: Fix top boundary - lose life when going above visible screen
-const CACHE_NAME = 'vimtractor-v3';
+// v4: Test auto-deploy cache refresh
+const CACHE_NAME = 'vimtractor-v4';
 const APP_FILES = [
   '/',
   '/index.html',
