@@ -482,25 +482,11 @@ export class HUD {
         if (!this.versionInfo) return;
 
         try {
-            // Get version from cache name
-            const cacheNames = await caches.keys();
-            const vimtractorCache = cacheNames.find(name => name.startsWith('vimtractor-'));
-
-            if (vimtractorCache) {
-                // Extract version from cache name (format: vimtractor-YYYYMMDDHHmmss)
-                const version = vimtractorCache.replace('vimtractor-', '');
-                // Parse: YYYYMMDDHHmmss -> human readable
-                const year = version.slice(0, 4);
-                const month = version.slice(4, 6);
-                const day = version.slice(6, 8);
-                const hour = version.slice(8, 10);
-                const min = version.slice(10, 12);
-                // Format: "Dec 20, 21:30" style
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                const monthName = months[parseInt(month, 10) - 1] || month;
-                const formatted = `${monthName} ${parseInt(day, 10)}, ${hour}:${min}`;
-                this.versionInfo.textContent = `Build: ${formatted}`;
+            // Fetch version from version.json (generated at build time)
+            const response = await fetch('/version.json');
+            if (response.ok) {
+                const data = await response.json();
+                this.versionInfo.textContent = `v${data.version}`;
             } else {
                 this.versionInfo.textContent = '';
             }

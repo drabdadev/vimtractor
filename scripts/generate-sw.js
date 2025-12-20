@@ -9,6 +9,8 @@ const path = require('path');
 
 const TEMPLATE_PATH = path.join(__dirname, 'service-worker.template.js');
 const OUTPUT_PATH = path.join(__dirname, '..', 'public', 'service-worker.js');
+const VERSION_PATH = path.join(__dirname, '..', 'public', 'version.json');
+const PACKAGE_PATH = path.join(__dirname, '..', 'package.json');
 
 // Generate version: YYYYMMDDHHmmss
 function generateVersion() {
@@ -25,21 +27,33 @@ function generateVersion() {
 }
 
 function generateServiceWorker() {
-  const version = generateVersion();
+  const buildVersion = generateVersion();
 
-  console.log(`[SW Generator] Generating service worker version: ${version}`);
+  console.log(`[SW Generator] Generating service worker version: ${buildVersion}`);
 
   // Read template
   const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
 
   // Replace placeholder with version
-  const output = template.replace(/\{\{VERSION\}\}/g, version);
+  const output = template.replace(/\{\{VERSION\}\}/g, buildVersion);
 
-  // Write output
+  // Write service worker
   fs.writeFileSync(OUTPUT_PATH, output);
 
+  // Read semantic version from package.json
+  const pkg = JSON.parse(fs.readFileSync(PACKAGE_PATH, 'utf8'));
+  const semanticVersion = pkg.version || '1.0.0';
+
+  // Write version.json for frontend
+  const versionData = {
+    version: semanticVersion,
+    build: buildVersion
+  };
+  fs.writeFileSync(VERSION_PATH, JSON.stringify(versionData));
+
   console.log(`[SW Generator] Created: public/service-worker.js`);
-  console.log(`[SW Generator] Cache name: vimtractor-${version}`);
+  console.log(`[SW Generator] Created: public/version.json (v${semanticVersion})`);
+  console.log(`[SW Generator] Cache name: vimtractor-${buildVersion}`);
 }
 
 generateServiceWorker();
