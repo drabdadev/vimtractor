@@ -333,6 +333,9 @@ export class HUD {
         this.leaderboardScreen.classList.add('hidden');
         this.helpScreen.classList.remove('hidden');
         this.helpVisible = true;
+
+        // Load version info when help opens (ensures element exists)
+        this.loadVersionInfo();
     }
 
     hideHelp() {
