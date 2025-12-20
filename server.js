@@ -33,17 +33,14 @@ if (!fs.existsSync(LEADERBOARD_FILE)) {
 app.use(express.json({ limit: '1kb' })); // Limit body size for security
 
 // Serve static files from public/
+// Note: No browser caching (maxAge: 0) - Service Worker handles caching
 app.use(express.static('public', {
-    maxAge: '1d',
+    maxAge: 0,
     etag: true,
     lastModified: true,
     setHeaders: (res, filePath) => {
-        // No cache for HTML files (for PWA updates)
-        if (filePath.endsWith('.html')) {
-            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        }
-        // Service worker should not be cached
-        if (filePath.endsWith('service-worker.js')) {
+        // No cache for HTML and service worker (critical for updates)
+        if (filePath.endsWith('.html') || filePath.endsWith('service-worker.js')) {
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         }
     }

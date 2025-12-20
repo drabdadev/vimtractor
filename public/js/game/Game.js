@@ -31,8 +31,11 @@ export class Game {
         this.canvas = document.getElementById('game-canvas');
 
         // Game state
-        this.state = GAME_STATES.NAME_INPUT;
+        this._state = GAME_STATES.NAME_INPUT;
         this.previousState = null;
+
+        // Expose game instance for SW update coordination
+        window.vimtractorGame = this;
         this.pausedForCommand = false;
         this.score = 0;
         this.highScore = this.storage.getHighScore();
@@ -67,6 +70,22 @@ export class Game {
 
         // Sound engine (initialized on first user interaction)
         this.soundInitialized = false;
+    }
+
+    // State getter/setter for SW update coordination
+    get state() {
+        return this._state;
+    }
+
+    set state(newState) {
+        const oldState = this._state;
+        this._state = newState;
+        // Dispatch event for SW update coordination
+        if (oldState !== newState) {
+            window.dispatchEvent(new CustomEvent('vimtractor:statechange', {
+                detail: { state: newState, previousState: oldState }
+            }));
+        }
     }
 
     initSound() {

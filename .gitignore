@@ -4,3 +4,6 @@ node_modules/
 
 # Leaderboard data (persisted via Docker volume in production)
 data/leaderboard.json
+
+# Generated service worker (created by npm run build:sw)
+public/service-worker.js

@@ -1,7 +1,9 @@
 // VimTractor Service Worker
-// Strategy: Stale-While-Revalidate for seamless updates
-// v4: Test auto-deploy cache refresh
-const CACHE_NAME = 'vimtractor-v4';
+// Auto-generated - DO NOT EDIT DIRECTLY
+// Edit scripts/service-worker.template.js instead
+// Version: {{VERSION}}
+
+const CACHE_NAME = 'vimtractor-{{VERSION}}';
 const APP_FILES = [
   '/',
   '/index.html',
@@ -29,7 +31,7 @@ const APP_FILES = [
 
 // Install: cache all app files
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing new version...');
+  console.log('[SW] Installing version {{VERSION}}...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(APP_FILES))
@@ -43,13 +45,13 @@ self.addEventListener('install', (event) => {
 
 // Activate: clean old caches and take control
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating...');
+  console.log('[SW] Activating version {{VERSION}}...');
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
         return Promise.all(
           cacheNames
-            .filter((name) => name !== CACHE_NAME)
+            .filter((name) => name.startsWith('vimtractor-') && name !== CACHE_NAME)
             .map((name) => {
               console.log('[SW] Deleting old cache:', name);
               return caches.delete(name);
@@ -64,35 +66,52 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: Stale-While-Revalidate strategy
-// 1. Return cached version immediately (fast!)
-// 2. Fetch fresh version in background
-// 3. Update cache for next time
+// Fetch: Network-first for HTML, Cache-first for assets
 self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip cross-origin requests (fonts, analytics, etc.)
-  if (!event.request.url.startsWith(self.location.origin)) {
+  // Skip cross-origin requests
+  if (!event.request.url.startsWith(self.location.origin)) return;
+
+  // Skip API requests - always fetch from network
+  if (event.request.url.includes('/api/')) return;
+
+  const url = new URL(event.request.url);
+
+  // HTML files: Network-first (ensures fresh content)
+  if (event.request.mode === 'navigate' || url.pathname.endsWith('.html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache the fresh response
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+          return response;
+        })
+        .catch(() => {
+          // Offline fallback
+          return caches.match(event.request);
+        })
+    );
     return;
   }
 
+  // Other assets: Cache-first with background update
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.match(event.request).then((cachedResponse) => {
         // Start fetching fresh version in background
         const fetchPromise = fetch(event.request)
           .then((networkResponse) => {
-            // Only cache successful responses
             if (networkResponse && networkResponse.status === 200) {
               cache.put(event.request, networkResponse.clone());
             }
             return networkResponse;
           })
-          .catch(() => {
-            // Network failed, that's ok - we have cache
-            return null;
-          });
+          .catch(() => null);
 
         // Return cached version immediately, or wait for network
         return cachedResponse || fetchPromise;

@@ -4,8 +4,9 @@
   "description": "VimTractor - Learn Vim by Playing an Arcade Game",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "build:sw": "node scripts/generate-sw.js",
+    "start": "npm run build:sw && node server.js",
+    "dev": "npm run build:sw && node server.js"
   },
   "author": "Michele Melis",
   "license": "MIT",

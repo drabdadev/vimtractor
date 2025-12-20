@@ -191,17 +191,70 @@
 
     <script type="module" src="js/main.js?v=43"></script>
 
-    <!-- Service Worker Registration -->
+    <!-- Service Worker Registration with Auto-Reload -->
     <script>
         if ('serviceWorker' in navigator) {
+            // Flag to track pending update
+            let updatePending = false;
+
+            // Function to safely reload when not playing
+            function safeReload() {
+                const game = window.vimtractorGame;
+                const isPlaying = game && game.state === 'PLAYING';
+
+                if (!isPlaying) {
+                    console.log('[SW] Reloading for update...');
+                    window.location.reload();
+                } else {
+                    console.log('[SW] Update pending - waiting for game to end');
+                    updatePending = true;
+                }
+            }
+
+            // Listen for game state changes to apply pending updates
+            window.addEventListener('vimtractor:statechange', (e) => {
+                if (updatePending && e.detail.state !== 'PLAYING') {
+                    console.log('[SW] Game ended - applying pending update');
+                    window.location.reload();
+                }
+            });
+
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/service-worker.js')
                     .then(registration => {
                         console.log('VimTractor SW registered:', registration.scope);
+
+                        // Check for updates every 60 seconds
+                        setInterval(() => registration.update(), 60000);
+
+                        // Handle new service worker installation
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            console.log('[SW] Update found, installing...');
+
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed') {
+                                    if (navigator.serviceWorker.controller) {
+                                        // New version available
+                                        console.log('[SW] New version ready');
+                                        newWorker.postMessage('skipWaiting');
+                                    }
+                                }
+                            });
+                        });
                     })
                     .catch(error => {
                         console.log('VimTractor SW registration failed:', error);
                     });
+
+                // Reload when new SW takes control
+                let refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (!refreshing) {
+                        refreshing = true;
+                        safeReload();
+                    }
+                });
             });
         }
     </script>

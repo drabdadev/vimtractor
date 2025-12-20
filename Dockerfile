@@ -6,11 +6,18 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and scripts
 COPY package*.json ./
+COPY scripts ./scripts
 
 # Install production dependencies only (npm ci is faster and deterministic)
 RUN npm ci --only=production --no-audit --no-fund
+
+# Copy public folder for SW generation
+COPY public ./public
+
+# Generate service worker with build timestamp
+RUN node scripts/generate-sw.js
 
 # Production stage
 FROM node:20-alpine AS production
@@ -29,7 +36,8 @@ COPY --from=builder --chown=vimtractor:nodejs /app/node_modules ./node_modules
 
 # Copy application files
 COPY --chown=vimtractor:nodejs server.js ./
-COPY --chown=vimtractor:nodejs public ./public
+# Copy public folder from builder (includes generated service-worker.js)
+COPY --from=builder --chown=vimtractor:nodejs /app/public ./public
 
 # Create data directory for leaderboard persistence
 RUN mkdir -p /app/data && chown -R vimtractor:nodejs /app/data
