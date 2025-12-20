@@ -489,14 +489,20 @@ export class HUD {
             if (vimtractorCache) {
                 // Extract version from cache name (format: vimtractor-YYYYMMDDHHmmss)
                 const version = vimtractorCache.replace('vimtractor-', '');
-                // Format: YYYY-MM-DD HH:mm
-                const formatted = version.replace(
-                    /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/,
-                    '$1-$2-$3 $4:$5'
-                );
-                this.versionInfo.textContent = `v${formatted}`;
+                // Parse: YYYYMMDDHHmmss -> human readable
+                const year = version.slice(0, 4);
+                const month = version.slice(4, 6);
+                const day = version.slice(6, 8);
+                const hour = version.slice(8, 10);
+                const min = version.slice(10, 12);
+                // Format: "Dec 20, 21:30" style
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const monthName = months[parseInt(month, 10) - 1] || month;
+                const formatted = `${monthName} ${parseInt(day, 10)}, ${hour}:${min}`;
+                this.versionInfo.textContent = `Build: ${formatted}`;
             } else {
-                this.versionInfo.textContent = 'v--';
+                this.versionInfo.textContent = '';
             }
         } catch {
             this.versionInfo.textContent = '';
