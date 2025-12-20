@@ -43,7 +43,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate: clean old caches and take control
+// Activate: clean old caches, take control, and reload clients
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating version {{VERSION}}...');
   event.waitUntil(
@@ -60,8 +60,16 @@ self.addEventListener('activate', (event) => {
       })
       .then(() => {
         console.log('[SW] Now controlling all pages');
-        // Take control of all pages immediately
         return self.clients.claim();
+      })
+      .then(() => {
+        // Force reload all clients to get fresh content
+        return self.clients.matchAll({ type: 'window' }).then((clients) => {
+          clients.forEach((client) => {
+            console.log('[SW] Reloading client for update');
+            client.postMessage({ type: 'RELOAD_FOR_UPDATE', version: '{{VERSION}}' });
+          });
+        });
       })
   );
 });

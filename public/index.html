@@ -219,6 +219,14 @@
                 }
             });
 
+            // Listen for reload message from SW (works even with old HTML)
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'RELOAD_FOR_UPDATE') {
+                    console.log('[SW] Received reload request for version:', event.data.version);
+                    safeReload();
+                }
+            });
+
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/service-worker.js')
                     .then(registration => {
