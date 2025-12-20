@@ -74,7 +74,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: Network-first for HTML, Cache-first for assets
+// Fetch: Network-first for ALL files (ensures users always get latest version)
 self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
@@ -82,49 +82,26 @@ self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests
   if (!event.request.url.startsWith(self.location.origin)) return;
 
-  // Skip API requests - always fetch from network
+  // Skip API requests - always fetch from network without caching
   if (event.request.url.includes('/api/')) return;
 
-  const url = new URL(event.request.url);
-
-  // HTML files: Network-first (ensures fresh content)
-  if (event.request.mode === 'navigate' || url.pathname.endsWith('.html')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          // Cache the fresh response
+  // Network-first strategy for ALL files
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Cache the fresh response for offline use
+        if (response && response.status === 200) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseClone);
           });
-          return response;
-        })
-        .catch(() => {
-          // Offline fallback
-          return caches.match(event.request);
-        })
-    );
-    return;
-  }
-
-  // Other assets: Cache-first with background update
-  event.respondWith(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.match(event.request).then((cachedResponse) => {
-        // Start fetching fresh version in background
-        const fetchPromise = fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              cache.put(event.request, networkResponse.clone());
-            }
-            return networkResponse;
-          })
-          .catch(() => null);
-
-        // Return cached version immediately, or wait for network
-        return cachedResponse || fetchPromise;
-      });
-    })
+        }
+        return response;
+      })
+      .catch(() => {
+        // Offline fallback - serve from cache
+        return caches.match(event.request);
+      })
   );
 });
 
