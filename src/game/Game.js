@@ -1,18 +1,18 @@
 import {
     GAME_STATES, GRID_ROWS, CELL_TYPES, CELL_SIZE, PLAYER, CANVAS_HEIGHT, SEED_ITEM
-} from '../utils/Constants.js?v=42';
-import { GameConfig } from '../config/GameConfig.js?v=42';
+} from '../utils/Constants.js';
+import { GameConfig } from '../config/GameConfig.js';
 import { Grid } from './Grid.js';
-import { Tractor } from './Tractor.js?v=42';
-import { Spawner } from './Spawner.js?v=42';
+import { Tractor } from './Tractor.js';
+import { Spawner } from './Spawner.js';
 import { Collision } from './Collision.js';
-import { VimParser, COMMAND_TYPES } from '../input/VimParser.js?v=42';
+import { VimParser, COMMAND_TYPES } from '../input/VimParser.js';
 import { InputHandler } from '../input/InputHandler.js';
-import { Renderer } from '../render/Renderer.js?v=42';
-import { HUD } from '../render/HUD.js?v=42';
+import { Renderer } from '../render/Renderer.js';
+import { HUD } from '../render/HUD.js';
 import { Storage } from '../utils/Storage.js';
 import { soundEngine } from '../audio/SoundEngine.js';
-import { themeManager } from '../utils/ThemeManager.js?v=42';
+import { themeManager } from '../utils/ThemeManager.js';
 
 export class Game {
     constructor() {

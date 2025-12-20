@@ -2,16 +2,22 @@
   "name": "vimtractor",
   "version": "1.0.0",
   "description": "VimTractor - Learn Vim by Playing an Arcade Game",
+  "type": "module",
   "main": "server.js",
   "scripts": {
-    "build:sw": "node scripts/generate-sw.js",
-    "start": "npm run build:sw && node server.js",
-    "dev": "npm run build:sw && node server.js"
+    "dev": "concurrently \"vite\" \"node server.js\"",
+    "build": "vite build && node scripts/generate-sw.js",
+    "preview": "vite preview",
+    "start": "node server.js"
   },
   "author": "Michele Melis",
   "license": "MIT",
   "dependencies": {
     "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "vite": "^7.3.0"
   },
   "engines": {
     "node": ">=18.0.0"

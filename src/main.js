@@ -1,4 +1,4 @@
-import { Game } from './game/Game.js?v=42';
+import { Game } from './game/Game.js';
 import { soundEngine } from './audio/SoundEngine.js';
 
 // Wait for DOM to be ready

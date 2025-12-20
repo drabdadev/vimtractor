@@ -9,12 +9,18 @@
  *   GET  /health              - Health check for Docker
  */
 
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5003;
+const PORT = process.env.PORT || 5110;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const STATIC_DIR = IS_PRODUCTION ? 'dist' : 'public';  // Vite outputs to dist/
 const DATA_DIR = path.join(__dirname, 'data');
 const LEADERBOARD_FILE = path.join(DATA_DIR, 'leaderboard.json');
 const MAX_ENTRIES = 50;
@@ -32,15 +38,15 @@ if (!fs.existsSync(LEADERBOARD_FILE)) {
 // Middleware
 app.use(express.json({ limit: '1kb' })); // Limit body size for security
 
-// Serve static files from public/
-// Note: No browser caching (maxAge: 0) - Service Worker handles caching
-app.use(express.static('public', {
-    maxAge: 0,
+// Serve static files from dist/ (production) or public/ (dev fallback)
+// In production, Vite builds to dist/ with hashed filenames for cache busting
+app.use(express.static(STATIC_DIR, {
+    maxAge: IS_PRODUCTION ? '1y' : 0,  // Long cache in prod (hashed filenames), no cache in dev
     etag: true,
     lastModified: true,
     setHeaders: (res, filePath) => {
-        // No cache for HTML and service worker (critical for updates)
-        if (filePath.endsWith('.html') || filePath.endsWith('service-worker.js')) {
+        // No cache for HTML and service worker (must always be fresh)
+        if (filePath.endsWith('.html') || filePath.endsWith('service-worker.js') || filePath.endsWith('version.json')) {
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         }
     }
@@ -143,7 +149,7 @@ app.get('/health', (req, res) => {
 app.use((req, res, next) => {
     // Only serve index.html for GET requests that accept HTML
     if (req.method === 'GET' && req.accepts('html')) {
-        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        res.sendFile(path.join(__dirname, STATIC_DIR, 'index.html'));
     } else {
         res.status(404).json({ error: 'Not found' });
     }

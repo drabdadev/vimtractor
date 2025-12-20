@@ -5,6 +5,9 @@ node_modules/
 # Leaderboard data (persisted via Docker volume in production)
 data/leaderboard.json
 
-# Generated files (created by npm run build:sw)
+# Vite build output
+dist/
+
+# Legacy generated files (now in dist/)
 public/service-worker.js
 public/version.json

@@ -2,14 +2,20 @@
  * Service Worker Generator
  * Generates service-worker.js with a unique version based on build timestamp
  * Run: node scripts/generate-sw.js
+ *
+ * Outputs to dist/ folder (after Vite build)
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const TEMPLATE_PATH = path.join(__dirname, 'service-worker.template.js');
-const OUTPUT_PATH = path.join(__dirname, '..', 'public', 'service-worker.js');
-const VERSION_PATH = path.join(__dirname, '..', 'public', 'version.json');
+const OUTPUT_PATH = path.join(__dirname, '..', 'dist', 'service-worker.js');
+const VERSION_PATH = path.join(__dirname, '..', 'dist', 'version.json');
 const PACKAGE_PATH = path.join(__dirname, '..', 'package.json');
 
 // Generate version: YYYYMMDDHHmmss
@@ -31,6 +37,13 @@ function generateServiceWorker() {
 
   console.log(`[SW Generator] Generating service worker version: ${buildVersion}`);
 
+  // Ensure dist directory exists (should exist after vite build)
+  const distDir = path.dirname(OUTPUT_PATH);
+  if (!fs.existsSync(distDir)) {
+    console.error('[SW Generator] Error: dist/ directory does not exist. Run vite build first.');
+    process.exit(1);
+  }
+
   // Read template
   const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
 
@@ -51,8 +64,8 @@ function generateServiceWorker() {
   };
   fs.writeFileSync(VERSION_PATH, JSON.stringify(versionData));
 
-  console.log(`[SW Generator] Created: public/service-worker.js`);
-  console.log(`[SW Generator] Created: public/version.json (v${semanticVersion})`);
+  console.log(`[SW Generator] Created: dist/service-worker.js`);
+  console.log(`[SW Generator] Created: dist/version.json (v${semanticVersion})`);
   console.log(`[SW Generator] Cache name: vimtractor-${buildVersion}`);
 }
 
