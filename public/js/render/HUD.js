@@ -21,6 +21,8 @@ export class HUD {
         this.playerDisplayName = document.getElementById('player-display-name');
         this.helpVisible = false;
         this.leaderboardVisible = false;
+        this.versionInfo = document.getElementById('version-info');
+        this.loadVersionInfo();
 
         // Vim statusline elements
         this.statusline = document.getElementById('vim-statusline');
@@ -470,6 +472,31 @@ export class HUD {
         if (this.infobarPosition) {
             // Format like Neovim: row:col (0-indexed internally, but show 1-indexed for users)
             this.infobarPosition.textContent = `${row}:${col}`;
+        }
+    }
+
+    async loadVersionInfo() {
+        if (!this.versionInfo) return;
+
+        try {
+            // Get version from cache name
+            const cacheNames = await caches.keys();
+            const vimtractorCache = cacheNames.find(name => name.startsWith('vimtractor-'));
+
+            if (vimtractorCache) {
+                // Extract version from cache name (format: vimtractor-YYYYMMDDHHmmss)
+                const version = vimtractorCache.replace('vimtractor-', '');
+                // Format: YYYY-MM-DD HH:mm
+                const formatted = version.replace(
+                    /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/,
+                    '$1-$2-$3 $4:$5'
+                );
+                this.versionInfo.textContent = `v${formatted}`;
+            } else {
+                this.versionInfo.textContent = 'v--';
+            }
+        } catch {
+            this.versionInfo.textContent = '';
         }
     }
 }
