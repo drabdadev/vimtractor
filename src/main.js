@@ -1,3 +1,4 @@
+import '../public/css/style.css';
 import { Game } from './game/Game.js';
 import { soundEngine } from './audio/SoundEngine.js';
 
