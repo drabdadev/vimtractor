@@ -2,7 +2,7 @@
 # Multi-stage build with Vite for cache-busting
 
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:24.18.0-alpine AS builder
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including devDependencies for Vite build)
-RUN npm ci --no-audit --no-fund
+RUN npm install --global npm@11.17.0 && npm ci --no-audit --no-fund
 
 # Copy source files needed for build
 COPY index.html ./
@@ -23,7 +23,7 @@ COPY scripts ./scripts
 RUN npm run build
 
 # Production stage
-FROM node:20-alpine AS production
+FROM node:24.18.0-alpine AS production
 
 # Install curl for health checks
 RUN apk add --no-cache curl
@@ -36,7 +36,7 @@ RUN addgroup -g 1001 -S nodejs && \
 
 # Copy package files and install production dependencies only
 COPY package*.json ./
-RUN npm ci --only=production --no-audit --no-fund
+RUN npm install --global npm@11.17.0 && npm ci --only=production --no-audit --no-fund
 
 # Copy application files
 COPY --chown=vimtractor:nodejs server.js ./
