@@ -6,6 +6,8 @@ name: Deploy to VPS
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - docs/SECURITY-ADVISORIES.md
   workflow_dispatch:
     inputs:
       force_rebuild:
