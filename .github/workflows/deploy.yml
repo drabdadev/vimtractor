@@ -1,6 +1,3 @@
-# VimTractor Auto-Deploy to VPS
-# Triggers on push to main or manual dispatch
-
 name: Deploy to VPS
 
 on:
@@ -11,49 +8,69 @@ on:
   workflow_dispatch:
     inputs:
       force_rebuild:
-        description: 'Force rebuild without cache'
+        description: Force rebuild without cache
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
+concurrency:
+  group: deploy-vps1-vimtractor
+  cancel-in-progress: false
+
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v4
+      - name: Build production image
+        env:
+          FORCE_REBUILD: ${{ inputs.force_rebuild || false }}
+        run: |
+          flags=()
+          if [[ "$FORCE_REBUILD" == "true" ]]; then flags+=(--no-cache); fi
+          docker buildx build "${flags[@]}" \
+            --progress=plain \
+            --platform linux/amd64 \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
+            -f Dockerfile \
+            -t ghcr.io/drabdadev/vimtractor:sha-${{ github.sha }} \
+            --load \
+            .
+      - name: Export exact image
+        run: docker save ghcr.io/drabdadev/vimtractor:sha-${{ github.sha }} | gzip > release-image.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-image
+          path: release-image.tar.gz
+          retention-days: 1
+
   deploy:
     name: Deploy VimTractor
     runs-on: ubuntu-latest
-
+    needs: build
+    permissions:
+      contents: read
+    timeout-minutes: 30
     steps:
-      - name: Deploy to VPS via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        env:
-          FORCE_REBUILD: ${{ github.event.inputs.force_rebuild }}
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script_stop: true
-          envs: FORCE_REBUILD
-          script: |
-            echo "Starting VimTractor deployment..."
-            /var/docker/scripts/deploy-vimtractor.sh main "${FORCE_REBUILD:-false}"
-            echo "Deployment script completed!"
-
+          name: release-image
+      - name: Configure SSH access
+        uses: webfactory/ssh-agent@v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
       - name: Verify deployment
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            echo "Verifying deployment..."
-            for i in 1 2 3 4 5 6 7 8 9 10; do
-              STATUS=$(docker inspect --format='{{.State.Health.Status}}' vimtractor 2>/dev/null || echo "not_found")
-              if [ "$STATUS" = "healthy" ]; then
-                echo "Container is healthy!"
-                exit 0
-              fi
-              echo "Waiting for container... (attempt $i/10)"
-              sleep 3
-            done
-            echo "Container health check failed"
-            docker logs vimtractor --tail 20
-            exit 1
+        env:
+          DEPLOY_HOST: ${{ secrets.VPS_HOST }}
+          DEPLOY_USER: deploy-vimtractor
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -t ed25519 "$DEPLOY_HOST" 2>/dev/null > ~/.ssh/known_hosts
+          test "$(ssh-keygen -lf ~/.ssh/known_hosts | awk '{print $2}')" = 'SHA256:nDb39+jJylcefU4nqT/S11m13LTKNYTAsz7QeHXiRaI'
+          python3 scripts/send-release-image.py release-image.tar.gz "${{ github.sha }}" "$DEPLOY_USER" "$DEPLOY_HOST"
