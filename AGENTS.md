@@ -11,7 +11,7 @@
 
 ## Verifiche e confini
 
-- Per modifiche applicative verifica `npm run build` e il comportamento interessato; il manifest non definisce comandi di test o lint. Il Dockerfile usa Node.js 20 e installa dal lockfile con `npm ci`.
+- Per modifiche applicative verifica `npm run build` e il comportamento interessato; il manifest non definisce comandi di test o lint. Il Dockerfile fissa la versione Node.js e installa dal lockfile con `npm ci`.
 - Il repository è pubblico: conserva qui soltanto informazioni di sviluppo condivisibili. Host interni, indirizzi di infrastruttura, percorsi operativi e credenziali appartengono alla documentazione privata.
 - Il workflow `.github/workflows/deploy.yml` avvia il deploy sui push a `main`; una modifica soltanto documentale che deve evitarlo usa `[skip ci]` nella prima riga del messaggio di commit e verifica l'assenza di esecuzioni per quel commit.
 - Per cambiamenti al Service Worker usa il generatore; per distribuzione e ripristino consulta il contratto operativo privato autorizzato. Le vecchie istruzioni di rebuild sul server non provano il percorso di distribuzione corrente.
