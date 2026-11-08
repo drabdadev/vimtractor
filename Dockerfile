@@ -2,7 +2,7 @@
 # Multi-stage build with Vite for cache-busting
 
 # Build stage
-FROM node:24.18.0-alpine AS builder
+FROM node:24.22.2-alpine AS builder
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ COPY scripts ./scripts
 RUN npm run build
 
 # Production stage
-FROM node:24.18.0-alpine AS production
+FROM node:24.22.2-alpine AS production
 
 # Install curl for health checks
 RUN apk add --no-cache curl
