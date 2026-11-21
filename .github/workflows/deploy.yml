@@ -22,32 +22,31 @@ jobs:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
       - name: Set up Blacksmith Docker builder
         uses: useblacksmith/setup-docker-builder@6ff44f8e5255f9d8aa31ef22f7e57a2d926b7da0 # v1.11.0
-      - name: Build production image
-        env:
-          FORCE_REBUILD: ${{ inputs.force_rebuild || false }}
-        run: |
-          flags=()
-          if [[ "$FORCE_REBUILD" == "true" ]]; then flags+=(--no-cache); fi
-          docker buildx build "${flags[@]}" \
-            --progress=plain \
-            --platform linux/amd64 \
-            --label org.opencontainers.image.revision=${{ github.sha }} \
-            -f Dockerfile \
-            -t ghcr.io/drabdadev/vimtractor:sha-${{ github.sha }} \
-            --load \
-            .
-      - name: Export exact image
-        run: docker save ghcr.io/drabdadev/vimtractor:sha-${{ github.sha }} | gzip > release-image.tar.gz
-      - uses: actions/upload-artifact@v4
+      - name: Login to GHCR
+        uses: docker/login-action@v4
         with:
-          name: release-image
-          path: release-image.tar.gz
-          retention-days: 1
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push production image
+        id: image
+        uses: useblacksmith/build-push-action@fb9e3e6a9299c78462bfadd0d93352c316adc9b8 # v2
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          platforms: linux/amd64
+          no-cache: ${{ inputs.force_rebuild || false }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          tags: ghcr.io/drabdadev/vimtractor:sha-${{ github.sha }}
 
   deploy:
     name: Deploy VimTractor
@@ -55,12 +54,25 @@ jobs:
     needs: build
     permissions:
       contents: read
+      packages: read
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
+      - name: Login to GHCR
+        uses: docker/login-action@v4
         with:
-          name: release-image
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare exact release image from GHCR
+        env:
+          IMAGE_DIGEST: ${{ needs.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          docker pull --platform linux/amd64 "ghcr.io/drabdadev/vimtractor@$IMAGE_DIGEST"
+          docker tag "ghcr.io/drabdadev/vimtractor@$IMAGE_DIGEST" "ghcr.io/drabdadev/vimtractor:sha-${{ github.sha }}"
+          docker save "ghcr.io/drabdadev/vimtractor:sha-${{ github.sha }}" | gzip > release-image.tar.gz
       - name: Configure SSH access
         uses: webfactory/ssh-agent@v0.10.0
         with:
